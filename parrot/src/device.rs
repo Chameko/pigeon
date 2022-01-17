@@ -1,6 +1,7 @@
 use euclid::Size2D;
 use crate::{
-    transform::ScreenSpace
+    transform::ScreenSpace,
+    shader::Shader,
 };
 
 /// Parrot wrapper around [wgpu::Device]
@@ -40,5 +41,27 @@ impl Device {
 
     pub const fn size(&self) -> Size2D<u32, ScreenSpace> {
         self.size
+    }
+
+    /// Create a shader given the wgsl source code
+    pub fn create_wgsl_shader(&self, source: &str) -> Shader {
+        Shader {
+            wgpu: self.device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("Shader"),
+                source: wgpu::ShaderSource::Wgsl(source.into())
+            })
+        }
+    }
+
+    /// Create a shader given the bytes of a spirv bindary.
+    /// # Safety
+    /// Wgpu makes no attempt to check if this is a valid spirv and can hence cause a driver crash or funky behaviour. See [`wgpu::Device::create_shader_module_spirv`]
+    pub unsafe fn create_sprv_shader(&self, source: &[u8]) -> Shader {
+        Shader {
+            wgpu: self.device.create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
+                label: Some("Shader"),
+                source: wgpu::util::make_spirv_raw(source)
+            })
+        }
     }
 }
