@@ -46,10 +46,19 @@ impl VertexLayout {
             size: 0,
         }
     }
+
+    pub fn to_wgpu(&self) -> wgpu::VertexBufferLayout {
+        wgpu::VertexBufferLayout {
+            array_stride: self.size as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: self.wgpu_attrs.as_slice(),
+        }
+    }
 }
 
 // Convert array of Vertex formats to a VertexLayout
 impl From<&[VertexFormat]> for VertexLayout {
+    /// Convert from an array of VertexFormat to a VertexLayout
     fn from(vformats: &[VertexFormat]) -> Self {
         let mut vl = Self::empty();
 
@@ -68,10 +77,6 @@ impl From<&[VertexFormat]> for VertexLayout {
 // Convert parrot's vertex layout to wgpu's
 impl<'a> From<&'a VertexLayout> for wgpu::VertexBufferLayout<'a> {
     fn from(vl: &'a VertexLayout) -> Self {
-        wgpu::VertexBufferLayout {
-            array_stride: vl.size as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: vl.wgpu_attrs.as_slice(),
-        }
+        vl.to_wgpu()
     }
 }
