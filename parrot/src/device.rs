@@ -13,7 +13,7 @@ use crate::{
     },
     texture::Texture,
     sampler::Sampler,
-    binding::{Binding, BindingGroupLayout},
+    binding::{Binding, BindingGroupLayout, Bind, BindingGroup},
     pipeline::PipelineLayout,
 };
 
@@ -59,6 +59,7 @@ impl Device {
         self.size
     }
 
+    /// Configure the surface
     pub fn configure<T: Into<wgpu::PresentMode>>(
         &mut self,
         size: Size2D<u32, ScreenSpace>,
@@ -148,6 +149,7 @@ impl Device {
         })
     }
 
+    /// Create a texture
     pub fn create_texture(
         &self,
         size: euclid::Size2D<u32, ScreenSpace>,
@@ -219,6 +221,26 @@ impl Device {
         BindingGroupLayout::new(index, layout, bindings.len())
     }
 
+    pub fn create_binding_group(&self, layout: &BindingGroupLayout, binds: &[&dyn Bind]) -> BindingGroup {
+        assert_eq!(binds.len(), layout.size, "Layout slot doesn't match bindings");
+
+        let mut bindings = Vec::new();
+
+        for (i, b) in binds.iter().enumerate() {
+            bindings.push(b.binding(i as u32));
+        }
+
+        BindingGroup::new(
+            layout.set_index,
+            self.wgpu.create_bind_group(&wgpu::BindGroupDescriptor {
+                layout: &layout.wgpu,
+                label: None,
+                entries: bindings.as_slice()
+            }),
+        )
+    }
+
+    /// Create a pipeline layout from a set of bindings
     pub fn create_pipeline_layout(&self, sets: &[&[Binding]]) -> PipelineLayout {
         let mut b_layouts = Vec::new();
         for (index, bindings) in sets.iter().enumerate() {
