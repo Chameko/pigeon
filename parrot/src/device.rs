@@ -59,6 +59,23 @@ impl Device {
         self.size
     }
 
+    pub fn configure<T: Into<wgpu::PresentMode>>(
+        &mut self,
+        size: Size2D<u32, ScreenSpace>,
+        mode: T,
+        format: wgpu::TextureFormat,
+    ) {
+        let desc = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format,
+            present_mode: mode.into(),
+            width: size.width,
+            height: size.height,
+        };
+        self.surface.as_ref().expect("no surface found").configure(&self.wgpu, &desc);
+        self.size = size;
+    }
+
     /// Create a shader given a [`crate::shader::ShaderFile`]
     pub fn create_shader(&self, source: ShaderFile) -> Shader {
         match source {
