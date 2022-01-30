@@ -3,7 +3,7 @@ use crate::{buffers::vertex::VertexBuffer, painter::Painter};
 
 /// Trait for things that are paintable.
 pub trait Paintable {
-    fn buffer(&self, P: &Painter) -> VertexBuffer;
+    fn buffer(&self, p: &Painter) -> VertexBuffer;
 
     fn finish(self, p: &Painter) -> VertexBuffer
     where
