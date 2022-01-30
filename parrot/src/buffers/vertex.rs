@@ -7,11 +7,12 @@ use crate::{
 pub struct VertexBuffer {
     /// Size of the buffer in bytes
     pub size: u32,
-    /// Wrapped wgpu type
+    /// Wrapped wgpu buffer
     pub wgpu: wgpu::Buffer,
 }
 
 impl VertexBuffer {
+    /// 
     pub fn slice(&self) -> wgpu::BufferSlice {
         self.wgpu.slice(0..self.size as u64)
     }

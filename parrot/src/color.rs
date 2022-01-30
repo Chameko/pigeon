@@ -1,5 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
+pub trait Color : bytemuck::Pod + bytemuck::Zeroable {}
+
 /// A RGBA colour with 8-bit colour channels
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Default, Pod, Zeroable)]
@@ -32,6 +34,7 @@ impl Rgba8 {
     }
 }
 
+impl Color for Rgba8{}
 /// A BGRA colour with 8-bit colour channels
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default, Pod, Zeroable)]
@@ -63,6 +66,8 @@ impl Bgra8 {
         body
     }
 }
+
+impl Color for Bgra8 {}
 
 /// A RGBA colour represented as a float between 0 and 1
 #[derive(Clone, Copy, PartialEq, Debug, Default)]

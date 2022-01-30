@@ -10,23 +10,28 @@ pub enum VertexFormat {
 // wgpu conversion
 impl From<&VertexFormat> for wgpu::VertexFormat {
     fn from(vfmt: &VertexFormat) -> Self {
-        match vfmt {
-            VertexFormat::Floatx1 => wgpu::VertexFormat::Float32,
-            VertexFormat::Floatx2 => wgpu::VertexFormat::Float32x2,
-            VertexFormat::Floatx3 => wgpu::VertexFormat::Float32x3,
-            VertexFormat::Floatx4 => wgpu::VertexFormat::Float32x4,
-        }
+        vfmt.to_wgpu()
     }
 }
 
 impl VertexFormat {
-    // Return bytesize. Uses F32 which have a byte size of 4
+    /// Return bytesize. Uses F32 which have a byte size of 4
     const fn bytesize(self) -> usize {
         match self {
             VertexFormat::Floatx1 => 4,
             VertexFormat::Floatx2 => 8,
             VertexFormat::Floatx3 => 12,
             VertexFormat::Floatx4 => 16,
+        }
+    }
+
+    /// Transform into wgpu counterpart [`wgpu::VertexFormat`]
+    pub fn to_wgpu(&self) -> wgpu::VertexFormat {
+        match self {
+            VertexFormat::Floatx1 => wgpu::VertexFormat::Float32,
+            VertexFormat::Floatx2 => wgpu::VertexFormat::Float32x2,
+            VertexFormat::Floatx3 => wgpu::VertexFormat::Float32x3,
+            VertexFormat::Floatx4 => wgpu::VertexFormat::Float32x4,
         }
     }
 }
@@ -54,12 +59,9 @@ impl VertexLayout {
             attributes: self.wgpu_attrs.as_slice(),
         }
     }
-}
 
-// Convert array of Vertex formats to a VertexLayout
-impl From<&[VertexFormat]> for VertexLayout {
     /// Convert from an array of VertexFormat to a VertexLayout
-    fn from(vformats: &[VertexFormat]) -> Self {
+    pub fn from(vformats: &[VertexFormat]) -> Self {
         let mut vl = Self::empty();
 
         for vfmt in vformats {
@@ -71,6 +73,13 @@ impl From<&[VertexFormat]> for VertexLayout {
             vl.size += vfmt.bytesize();
         }
         vl
+    }
+}
+
+// Convert array of Vertex formats to a VertexLayout
+impl From<&[VertexFormat]> for VertexLayout {
+    fn from(vformats: &[VertexFormat]) -> Self {
+        VertexLayout::from(vformats)
     }
 }
 

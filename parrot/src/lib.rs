@@ -11,4 +11,4 @@ pub mod vertex;
 pub mod buffers;
 pub mod texture;
 pub mod sampler;
-pub mod colour;
+pub mod color;

@@ -13,5 +13,5 @@ resolver = "2"
 
 [dependencies]
 wgpu = "0.12.0"
-bytemuck = "1.7.3"
+bytemuck = {version = "1.7.3", features = ["derive"]}
 euclid = "0.22.6"

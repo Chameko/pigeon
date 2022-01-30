@@ -48,9 +48,9 @@ pub enum BindingType {
     Texture,
 }
 
-impl From<&BindingType> for wgpu::BindingType {
-    fn from(bt: &BindingType) -> Self {
-        match bt {
+impl BindingType {
+    pub fn as_wgpu(&self) -> wgpu::BindingType {
+        match self {
             BindingType::UniformBuffer => wgpu::BindingType::Buffer {
                 ty: wgpu::BufferBindingType::Uniform,
                 has_dynamic_offset: false,
@@ -65,6 +65,18 @@ impl From<&BindingType> for wgpu::BindingType {
                 multisampled: false // TODO: add multisampling
             }
         }
+    }
+}
+
+impl From<&BindingType> for wgpu::BindingType {
+    fn from(bt: &BindingType) -> Self {
+        bt.as_wgpu()
+    }
+}
+
+impl From<BindingType> for wgpu::BindingType {
+    fn from(bt: BindingType) -> Self {
+        bt.as_wgpu()
     }
 }
 
