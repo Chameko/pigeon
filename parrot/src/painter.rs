@@ -1,22 +1,31 @@
-use euclid::{Rect, Size2D};
+use euclid::Size2D;
 use wgpu::{TextureViewDescriptor, FilterMode, TextureFormat};
+use std::ops::Range;
 
 use crate::{
     device::Device,
     vertex::VertexLayout,
     error::ParrotError,
+    color::Rgba,
     transform::ScreenSpace,
     texture::Texture,
+    frame::Frame,
     pipeline::{Blending, Plumber},
     sampler::Sampler,
     binding::{BindingGroupLayout, Bind, BindingGroup},
     buffers::{
         vertex::VertexBuffer,
         uniform::UniformBuffer,
+        index::IndexBuffer,
     }, 
 };
 
+pub trait Draw {
+    fn draw<'a, 'b>(&'a self, binding: &'a BindingGroup, pass: &'b mut wgpu::RenderPass<'a>);
+}
+
 /// The main interface for parrot. > Handles the rendering shenanigans so YOU don't have to TM 
+#[derive(Debug)]
 pub struct Painter {
     device: Device,
 }
@@ -112,15 +121,23 @@ impl Painter {
         &self.device)
     }
 
+    /// Update the pipeline
     pub fn update_pipeline<'a, T: Plumber<'a>>(&mut self, pipe: &'a T, p: T::PrepareContext) {
         if let Some((buffer, uniforms)) = pipe.prepare(p) {
             self.device.update_uniform_buffer::<T::Uniforms>(uniforms.as_slice(), buffer);
         }
     }
 
-    // present
+    /// Get a frame
+    pub fn frame(&mut self) -> Frame {
+        let encoder = self.device.create_command_encoder();
+        Frame::new(encoder)
+    }
 
-    // submut
+    /// Present a frame
+    pub fn present(&mut self, frame: Frame) {
+        self.device.submit(vec![frame.encoder.finish()]);
+    }
 }
 
 /// Can be rendered into a pass.
@@ -147,5 +164,100 @@ impl Drop for RenderFrame {
         if let Some(wgpu) = self.wgpu.take() {
             wgpu.present();
         }
+    }
+}
+
+/// Wrapper around [`wgpu::LoadOp`]. Instructs wgpu to either clear the screen with a color, or load from memory
+#[derive(Debug)]
+pub enum PassOp {
+    Clear(Rgba),
+    Load(),
+}
+
+impl PassOp {
+    fn to_wgpu(&self) -> wgpu::LoadOp<wgpu::Color> {
+        match self {
+            PassOp::Clear(color) => wgpu::LoadOp::Clear((*color).into()),
+            PassOp::Load() => wgpu::LoadOp::Load
+        }
+    }
+}
+
+impl From<PassOp> for wgpu::LoadOp<wgpu::Color> {
+    fn from(op: PassOp) -> Self {
+        op.to_wgpu()
+    }
+}
+
+/// An extention on [`wgpu::RenderPass`] allowing it to perform actions on parrot's types
+pub trait RenderPassExtention<'a> {
+    fn begin(
+        encoder: &'a mut wgpu::CommandEncoder,
+        view: &'a wgpu::TextureView,
+        resolve_target: Option<&'a wgpu::TextureView>,
+        op: PassOp
+    ) -> Self;
+
+    fn set_parrot_pipeline<'b, T: Plumber<'b>>(&mut self, pipeline: &'a T);
+
+    fn set_binding(&mut self, group: &'a BindingGroup, offsets: &[u32]);
+
+    fn set_parrot_index_buffer(&mut self, index_buf: &'a IndexBuffer);
+    fn set_parrot_vertex_buffer(&mut self, vertex_buf: &'a VertexBuffer);
+    fn parrot_draw<T: Draw>(&mut self, drawable: &'a T, binding: &'a BindingGroup);
+    fn draw_buffer(&mut self, buf: &'a VertexBuffer);
+    fn draw_buffer_range(&mut self, buf: &'a VertexBuffer, range: Range<u32>);
+    fn draw_indexed(&mut self, indicies: Range<u32>, instances: Range<u32>);
+}
+
+impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
+    fn begin(encoder: &'a mut wgpu::CommandEncoder, view: &'a wgpu::TextureView, resolve_target: Option<&'a wgpu::TextureView>, op: PassOp) -> Self {
+        encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target,
+                ops: wgpu::Operations {
+                    load: op.into(),
+                    store: true,
+                },
+            }],
+            depth_stencil_attachment: None,
+        })
+    }
+
+    fn set_parrot_pipeline<'b, T: Plumber<'b>>(&mut self, pipeline: &'a T) {
+        self.set_pipeline(&pipeline.pipeline.wgpu);
+        self.set_binding(&pipeline.bindings, &[]);
+    }
+
+    fn set_binding(&mut self, group: &'a BindingGroup, offsets: &[u32]) {
+        self.set_bind_group(group.set_index, &group.wgpu, offsets);
+    }
+
+    fn set_parrot_index_buffer(&mut self, index_buf: &'a IndexBuffer) {
+        self.set_index_buffer(index_buf.slice(), wgpu::IndexFormat::Uint16)
+    }
+
+    fn set_parrot_vertex_buffer(&mut self, vertex_buf: &'a VertexBuffer) {
+        self.set_vertex_buffer(0, vertex_buf.slice())
+    }
+
+    fn parrot_draw<T: Draw>(&mut self, drawable: &'a T, binding: &'a BindingGroup) {
+        drawable.draw(binding, self);
+    }
+
+    fn draw_buffer(&mut self, buf: &'a VertexBuffer) {
+        self.set_parrot_vertex_buffer(buf);
+        self.draw(0..buf.size, 0..1);
+    }
+
+    fn draw_buffer_range(&mut self, buf: &'a VertexBuffer, range: Range<u32>) {
+        self.set_parrot_vertex_buffer(buf);
+        self.draw(range, 0..1);
+    }
+
+    fn draw_indexed(&mut self, indicies: Range<u32>, instances: Range<u32>) {
+        self.draw_indexed(indicies, 0, instances)
     }
 }
