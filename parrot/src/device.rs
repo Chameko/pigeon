@@ -1,6 +1,7 @@
 use euclid::Size2D;
 use wgpu::util::DeviceExt;
 use crate::{
+    vertex::VertexLayout,
     transform::ScreenSpace,
     shader::{
         Shader,
@@ -14,7 +15,7 @@ use crate::{
     texture::Texture,
     sampler::Sampler,
     binding::{Binding, BindingGroupLayout, Bind, BindingGroup},
-    pipeline::PipelineLayout,
+    pipeline::{PipelineLayout, Pipeline, Blending},
 };
 
 /// Parrot wrapper around [wgpu::Device]
@@ -249,6 +250,86 @@ impl Device {
         
         PipelineLayout {
             b_layouts,
+        }
+    }
+    
+    /// Update a uniform buffer
+    pub fn update_uniform_buffer<T: bytemuck::Pod + Copy + 'static>(&self, slice: &[T], buf: &UniformBuffer) {
+        self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(slice));
+    }
+
+    /// Create a pipeline
+    pub fn create_pipeline(
+        &self,
+        pipeline_layout: PipelineLayout,
+        vertex_layout: VertexLayout,
+        blending: Blending,
+        shader: &Shader,
+        tex_format: wgpu::TextureFormat,
+        multisample: wgpu::MultisampleState,
+    ) -> Pipeline {
+        let vertex_attrs = vertex_layout.to_wgpu();
+        let mut b_layouts = Vec::new();
+
+        for s in pipeline_layout.b_layouts.iter() {
+            b_layouts.push(&s.wgpu);
+        }
+
+        let layout = &self.wgpu.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: None,
+            bind_group_layouts: b_layouts.as_slice(),
+            push_constant_ranges: &[],
+        });
+
+        let (src_factor, dst_factor, operation) = blending.as_wgpu();
+
+        // I like your funny words magic man
+        let wgpu = self.wgpu.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: None,
+            layout: Some(layout),
+            vertex: wgpu::VertexState {
+                module: &shader.wgpu,
+                entry_point: "vs_main",
+                buffers: &[vertex_attrs],
+            },
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample,
+            fragment: Some(wgpu::FragmentState {
+                module: &shader.wgpu,
+                entry_point: "fs_main",
+                targets: &[wgpu::ColorTargetState {
+                    format: tex_format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor,
+                            dst_factor,
+                            operation
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor,
+                            dst_factor,
+                            operation
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                }],
+            }),
+            multiview: None,
+        });
+
+        Pipeline {
+            layout: pipeline_layout,
+            vertex_layout,
+            wgpu,
         }
     }
 }

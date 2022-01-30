@@ -27,7 +27,7 @@ pub struct PipelineLayout {
 }
 
 /// A trait for managing pipelines and their functionality
-pub trait Pluber<'a> {
+pub trait Plumber<'a> {
     type PrepareContext;
     type Uniforms: bytemuck::Pod + Copy + 'static;
 
@@ -50,7 +50,7 @@ pub struct PipelineDescription<'a> {
     /// Vertex layout of the pipeline
     pub vertex_layout: &'a [VertexFormat],
     /// Bindings used to create a pipeline layout
-    pub pipeline_layout: &'a [&'a [&'a Binding]],
+    pub pipeline_layout: &'a [&'a [Binding]],
     /// Shader file
     pub shader: ShaderFile
 }
