@@ -19,6 +19,7 @@ use crate::{
 };
 
 /// Parrot wrapper around [wgpu::Device]
+#[derive(Debug)]
 pub struct Device {
     /// Wrapper around [`wgpu::Device`]
     pub wgpu: wgpu::Device,
@@ -76,6 +77,16 @@ impl Device {
         };
         self.surface.as_ref().expect("no surface found").configure(&self.wgpu, &desc);
         self.size = size;
+    }
+
+    pub fn create_command_encoder(&self) -> wgpu::CommandEncoder {
+        self.wgpu.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: None,
+        })
+    }
+
+    pub fn submit<I: IntoIterator<Item = wgpu::CommandBuffer>>(&mut self, cmds: I) {
+        self.queue.submit(cmds);
     }
 
     /// Create a shader given a [`crate::shader::ShaderFile`]
