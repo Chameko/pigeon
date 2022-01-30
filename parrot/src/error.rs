@@ -8,8 +8,8 @@ pub enum ParrotError {
     RequestDeviceError(#[from] wgpu::RequestDeviceError),
 }
 
-impl From<Error> for io::Error {
-    fn from(err: Error) -> io::Error {
+impl From<ParrotError> for io::Error {
+    fn from(err: ParrotError) -> io::Error {
         io::Error::new(io::ErrorKind::Other, err)
     }
 }

@@ -12,3 +12,4 @@ pub mod buffers;
 pub mod texture;
 pub mod sampler;
 pub mod color;
+pub mod error;
