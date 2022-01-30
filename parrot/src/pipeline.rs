@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::{
     binding::{
         BindingGroupLayout,
@@ -27,7 +29,7 @@ pub struct PipelineLayout {
 }
 
 /// A trait for managing pipelines and their functionality
-pub trait Plumber<'a> {
+pub trait Plumber<'a>: Deref<Target = PipelineCore> {
     type PrepareContext;
     type Uniforms: bytemuck::Pod + Copy + 'static;
 
@@ -37,7 +39,7 @@ pub trait Plumber<'a> {
 }
 
 #[derive(Debug)]
-/// The core components of a pipeline
+/// The core components of a pipeline. [`Plumber`] derefs to this during a render pass.
 pub struct PipelineCore {
     pub pipeline: Pipeline,
     pub bindings: BindingGroup,
