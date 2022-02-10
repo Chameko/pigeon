@@ -1,5 +1,9 @@
 # Parrot
 
+![Latest version](https://img.shields.io/crates/v/pigeon-parrot?style=flat-square)
+![Docs](https://img.shields.io/docsrs/pigeon-parrot?style=flat-square)
+![License](https://img.shields.io/crates/l/pigeon-parrot?style=flat-square)
+
 A repeated middleware library for wgpu.
 
 ## Design
