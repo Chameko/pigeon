@@ -110,11 +110,11 @@ impl Device {
     /// Create a shader given the bytes of a spirv bindary.
     /// # Safety
     /// Wgpu makes no attempt to check if this is a valid spirv and can hence cause a driver crash or funky behaviour. See [`wgpu::Device::create_shader_module_spirv`]
-    pub unsafe fn create_sprv_shader(&self, source: &[u8]) -> Shader {
+    pub fn create_sprv_shader(&self, source: &[u8]) -> Shader {
         Shader {
-            wgpu: self.wgpu.create_shader_module_spirv(&wgpu::ShaderModuleDescriptorSpirV {
+            wgpu: self.wgpu.create_shader_module(&wgpu::ShaderModuleDescriptor {
                 label: Some("Shader"),
-                source: wgpu::util::make_spirv_raw(source)
+                source: wgpu::util::make_spirv(source),
             })
         }
     }
@@ -300,7 +300,7 @@ impl Device {
             layout: Some(layout),
             vertex: wgpu::VertexState {
                 module: &shader.wgpu,
-                entry_point: "vs_main",
+                entry_point: "main",
                 buffers: &[vertex_attrs],
             },
             primitive: wgpu::PrimitiveState {
@@ -316,7 +316,7 @@ impl Device {
             multisample,
             fragment: Some(wgpu::FragmentState {
                 module: &shader.wgpu,
-                entry_point: "fs_main",
+                entry_point: "main",
                 targets: &[wgpu::ColorTargetState {
                     format: tex_format,
                     blend: Some(wgpu::BlendState {

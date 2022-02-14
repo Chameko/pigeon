@@ -29,4 +29,6 @@ pub mod color;
 pub mod error;
 pub mod frame;
 pub mod paintable;
+
 pub use painter::RenderPassExtention;
+pub use painter::Painter;
