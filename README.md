@@ -1,7 +1,15 @@
 # Pigeon
 
-A simple rendering library designed to be implemented into a game engine or extended for general use
+A simple, crossplatform 2D rendering library.
 
-## Parrot
+## Why
 
-A middleware library between wgpu and pidgeon, designed to make wgpu easier to work with. It houses abstractions around for wgpu as well as some convinient functions for pigeon. Parrot is derived from [easygpu](https://github.com/khonsulabs/easygpu/) and is mostly just a re-implementation for pigeon. I would not recommend using it in your library as its not designed with other libraries in mind. A better option would be [easygpu](https://github.com/khonsulabs/easygpu/)
+Pigeon's development is primarily driven by the need for a graphical backend for AVN. However I also wanted to keep it seperate from AVN so it could be used for other projects, such as a backend for [egui](https://github.com/emilk/egui).
+
+## Disclaimer
+
+I am very new to graphics programming and this is more or less an effort to increase my understanding. Use at your own risk
+
+## Dependencies
+
+Pigeon uses parrot as a middleware layer between it and wgpu and uses winit for windowing.

@@ -1,18 +1,18 @@
 [package]
-name = "parrot"
+name = "pigeon-parrot"
 description = "A wrapper around wgpu for pigeon, designed to make things easier."
 authors = ["Connor Young"]
 license = "MIT"
-readme = "../README.md"
+readme = "./README.md"
 repository = "https://github.com/Chameko/pigeon"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu = "0.12.0"
+wgpu = {version = "0.12.0", features = ["spirv"]}
 bytemuck = {version = "1.7.3", features = ["derive"]}
 euclid = "0.22.6"
 thiserror = "1.0"
