@@ -92,7 +92,7 @@ impl Device {
     /// Create a shader given a [`crate::shader::ShaderFile`]
     pub fn create_shader(&self, source: ShaderFile) -> Shader {
         match source {
-            ShaderFile::Spirv(bytes) => unsafe{ self.create_sprv_shader(bytes) },
+            ShaderFile::Spirv(bytes) => self.create_sprv_shader(bytes),
             ShaderFile::Wgsl(s) => self.create_wgsl_shader(s),
         }
     }

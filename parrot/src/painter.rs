@@ -24,7 +24,22 @@ pub trait Draw {
     fn draw<'a, 'b>(&'a self, binding: &'a BindingGroup, pass: &'b mut wgpu::RenderPass<'a>);
 }
 
-/// The main interface for parrot. > Handles the rendering shenanigans so YOU don't have to TM 
+/// The main interface for parrot. *Handles the rendering shenanigans so YOU don't have to*TM
+/// 
+/// # Setup
+/// ## General
+/// Use [`Painter::for_surface`] to create the painter and the configure the surface with [`Painter::configure`]
+/// 
+/// ## Pipelie
+/// Parrot allows you to create your own pipelines (wow).
+/// See [`Plumber`] trait
+/// 
+/// # Usage
+/// Create a frame using [`Painter::frame`].
+/// To perform a render pass on the frame you'll need to grab something that implements [`RenderTarget`].
+/// Currently the only type that does so is a [`RenderFrame`] which can be grabbed via [`Painter::current_frame`].
+/// 
+/// You can present a frame with [`Painter::present`]
 #[derive(Debug)]
 pub struct Painter {
     device: Device,
