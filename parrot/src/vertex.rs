@@ -61,25 +61,19 @@ impl VertexLayout {
     }
 
     /// Convert from an array of VertexFormat to a VertexLayout
-    pub fn from(vformats: &[VertexFormat]) -> Self {
+    pub fn from<T: bytemuck::Pod>(vformats: &[VertexFormat]) -> Self {
         let mut vl = Self::empty();
 
         for vfmt in vformats {
             vl.wgpu_attrs.push(wgpu::VertexAttribute {
                 shader_location: vl.wgpu_attrs.len() as u32,
                 offset: vl.size as wgpu::BufferAddress,
-                format: wgpu::VertexFormat::from(vfmt),
+                format: vfmt.to_wgpu(),
             });
-            vl.size += vfmt.bytesize();
+            vl.size += std::mem::size_of::<T>();
         }
+        log::debug!("Vertex layout: {:?}", vl);
         vl
-    }
-}
-
-// Convert array of Vertex formats to a VertexLayout
-impl From<&[VertexFormat]> for VertexLayout {
-    fn from(vformats: &[VertexFormat]) -> Self {
-        VertexLayout::from(vformats)
     }
 }
 

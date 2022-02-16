@@ -30,11 +30,21 @@ pub struct PipelineLayout {
 
 /// A trait for managing pipelines and their functionality
 pub trait Plumber<'a>: Deref<Target = PipelineCore> {
+    /// The vertex type you're using
+    type Vertex: bytemuck::Pod + Copy + 'static;
+
+    /// A type that can be used with prepare
     type PrepareContext;
+    /// Your uniforms
     type Uniforms: bytemuck::Pod + Copy + 'static;
 
+    /// Returns a [`PipelineDescription`]. This describes the layout of vertecies, sets of bindings and your shader file
     fn description() -> PipelineDescription<'a>;
+
+    /// This is what will create your pipeline.
     fn setup(pipe: Pipeline, device: &Device) -> Self;
+
+    /// Prepare the uniform buffers with the supplied PrepareContext.
     fn prepare(&'a self, context: Self::PrepareContext) -> Option<(&'a UniformBuffer, Vec<Self::Uniforms>)>;
 }
 
@@ -42,9 +52,13 @@ pub trait Plumber<'a>: Deref<Target = PipelineCore> {
 /// The core components of a pipeline. [`Plumber`] derefs to this during a render pass.
 pub struct PipelineCore {
     pub pipeline: Pipeline,
-    pub bindings: BindingGroup,
-    pub uniforms: UniformBuffer,
+    pub bindings: Option<BindingGroup>,
+    pub uniforms: Option<UniformBuffer>,
 }
+
+#[derive(Debug)]
+/// A Set of bindings
+pub struct Set<'a>(pub &'a[Binding]);
 
 #[derive(Debug)]
 /// Description used to create pipelines
@@ -52,7 +66,7 @@ pub struct PipelineDescription<'a> {
     /// Vertex layout of the pipeline
     pub vertex_layout: &'a [VertexFormat],
     /// Bindings used to create a pipeline layout
-    pub pipeline_layout: &'a [&'a [Binding]],
+    pub pipeline_layout: Option<&'a [Set<'a>]>,
     /// Shader file
     pub shader: ShaderFile
 }
@@ -100,6 +114,7 @@ impl Default for Blending {
     }
 }
 
+/// Wrapper around [`wgpu::BlendFactor`]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BlendFactor {
     One,
@@ -125,6 +140,7 @@ impl From<BlendFactor> for wgpu::BlendFactor {
     }
 }
 
+/// Wrapper around [`wgpu::BlendOperation`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlendOp {
     Add,

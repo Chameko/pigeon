@@ -3,11 +3,14 @@
 //! 
 //! ## Usage
 //! Parrot is designed to be an abstraction over wgpu's types so that they are easier to work with.
-//! Parrot also comes in with a basic rendering framework, however the pipeline is exposed, so users
-//! can create their own.
+//! Since most of parrot's types are just light wrappers around wgpu components, if you want to know what they
+//! do, go check out the corresponding wgpu component.
 //! 
-//! To use parrot, create a pipeline class that implements the [`pipeline::Plumber`] trait.
-//! Then create an instance of the [`painter::Painter`] using a wgpu compatible surface.
+//! Parrot also contains a [`Painter`] to deal with a majority of the boilerplate code whilst still exposing
+//! the pipeline to the user.
+//! 
+//! To use parrot, create a pipeline class that implements the [`Plumber`] trait.
+//! Then create an instance of the [`Painter`] using a wgpu compatible surface.
 //! 
 //! To use this library you should have a rudementary understanding of how wgpu works. A good resource to get
 //! started is [learn wgpu](https://sotrh.github.io/learn-wgpu/#what-is-wgpu).
@@ -30,5 +33,6 @@ pub mod error;
 pub mod frame;
 pub mod paintable;
 
+pub use pipeline::Plumber;
 pub use painter::RenderPassExtention;
 pub use painter::Painter;

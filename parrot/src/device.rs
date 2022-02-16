@@ -15,7 +15,7 @@ use crate::{
     texture::Texture,
     sampler::Sampler,
     binding::{Binding, BindingGroupLayout, Bind, BindingGroup},
-    pipeline::{PipelineLayout, Pipeline, Blending},
+    pipeline::{PipelineLayout, Pipeline, Blending, Set},
 };
 
 /// Parrot wrapper around [wgpu::Device]
@@ -121,13 +121,14 @@ impl Device {
 
     pub fn create_vertex_buffer<T: bytemuck::Pod>(&self, verticies: &[T]) -> VertexBuffer {
         VertexBuffer {
-            wgpu: self.create_buffer_from_slice(verticies, wgpu::BufferUsages::VERTEX),
+            wgpu: self.create_buffer_from_slice(verticies, wgpu::BufferUsages::VERTEX, 
+                Some("Vertex buffer")),
             size: (verticies.len() * std::mem::size_of::<T>()) as u32
         }
     }
 
     pub fn create_index_buffer(&self, indicies: &[u16]) -> IndexBuffer {
-        let index_buf = self.create_buffer_from_slice(indicies, wgpu::BufferUsages::INDEX);
+        let index_buf = self.create_buffer_from_slice(indicies, wgpu::BufferUsages::INDEX, Some("Index buffer"));
         IndexBuffer {
             wgpu: index_buf,
             elements: indicies.len() as u32,
@@ -152,10 +153,11 @@ impl Device {
     pub fn create_buffer_from_slice<T: bytemuck::Pod> (
         &self,
         slice: &[T],
-        usage: wgpu::BufferUsages
+        usage: wgpu::BufferUsages,
+        label: Option<&str>
     ) -> wgpu::Buffer {
         self.wgpu.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
+            label,
             contents: bytemuck::cast_slice(slice),
             usage,
         })
@@ -253,10 +255,13 @@ impl Device {
     }
 
     /// Create a pipeline layout from a set of bindings
-    pub fn create_pipeline_layout(&self, sets: &[&[Binding]]) -> PipelineLayout {
+    pub fn create_pipeline_layout(&self, sets: Option<&[Set<'_>]>) -> PipelineLayout {
         let mut b_layouts = Vec::new();
-        for (index, bindings) in sets.iter().enumerate() {
-            b_layouts.push(self.create_binding_group_layout(index as u32, bindings))
+        if let Some(ss) = sets {
+            for (index, bindings) in ss.iter().enumerate() {
+                log::debug!("Created binding group layout");
+                b_layouts.push(self.create_binding_group_layout(index as u32, bindings.0))
+            }
         }
         
         PipelineLayout {
@@ -295,12 +300,29 @@ impl Device {
         let (src_factor, dst_factor, operation) = blending.as_wgpu();
 
         // I like your funny words magic man
-        let wgpu = self.wgpu.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let targets = [wgpu::ColorTargetState {
+            format: tex_format,
+            blend: Some(wgpu::BlendState {
+                color: wgpu::BlendComponent {
+                    src_factor,
+                    dst_factor,
+                    operation
+                },
+                alpha: wgpu::BlendComponent {
+                    src_factor,
+                    dst_factor,
+                    operation
+                },
+            }),
+            write_mask: wgpu::ColorWrites::ALL,
+        }];
+
+        let desc = wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(layout),
             vertex: wgpu::VertexState {
                 module: &shader.wgpu,
-                entry_point: "main",
+                entry_point: "vs_main",
                 buffers: &[vertex_attrs],
             },
             primitive: wgpu::PrimitiveState {
@@ -316,26 +338,13 @@ impl Device {
             multisample,
             fragment: Some(wgpu::FragmentState {
                 module: &shader.wgpu,
-                entry_point: "main",
-                targets: &[wgpu::ColorTargetState {
-                    format: tex_format,
-                    blend: Some(wgpu::BlendState {
-                        color: wgpu::BlendComponent {
-                            src_factor,
-                            dst_factor,
-                            operation
-                        },
-                        alpha: wgpu::BlendComponent {
-                            src_factor,
-                            dst_factor,
-                            operation
-                        },
-                    }),
-                    write_mask: wgpu::ColorWrites::ALL,
-                }],
+                entry_point: "fs_main",
+                targets: &targets,
             }),
             multiview: None,
-        });
+        };
+
+        let wgpu = self.wgpu.create_render_pipeline(&desc);
 
         Pipeline {
             layout: pipeline_layout,

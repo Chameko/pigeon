@@ -99,6 +99,11 @@ impl Painter {
         self.device.create_vertex_buffer(verts)
     }
 
+    /// Create a index buffer
+    pub fn index_buffer(&self, indicies: &[u16]) -> IndexBuffer {
+        self.device.create_index_buffer(indicies)
+    }
+
     /// Create a uniform buffer
     pub fn uniform_buffer<T: bytemuck::Pod + Copy + 'static>(&self, buf: &[T]) -> UniformBuffer {
         self.device.create_uniform_buffer(buf)
@@ -118,7 +123,7 @@ impl Painter {
     pub fn pipeline<T: Plumber<'static>>(&self, blending: Blending, format: TextureFormat) -> T {
         let desc = T::description();
         let pipe_layout = self.device.create_pipeline_layout(desc.pipeline_layout);
-        let vertex_layout = VertexLayout::from(desc.vertex_layout);
+        let vertex_layout = VertexLayout::from::<T::Vertex>(desc.vertex_layout);
         let shader = self.device.create_shader(desc.shader);
 
         T::setup(self.device.create_pipeline(
@@ -243,7 +248,9 @@ impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
 
     fn set_parrot_pipeline<'b, T: Plumber<'b>>(&mut self, pipeline: &'a T) {
         self.set_pipeline(&pipeline.pipeline.wgpu);
-        self.set_binding(&pipeline.bindings, &[]);
+        if let Some(bindings) = &pipeline.bindings {
+            self.set_binding(bindings, &[]);
+        }
     }
 
     fn set_binding(&mut self, group: &'a BindingGroup, offsets: &[u32]) {
