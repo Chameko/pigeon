@@ -10,7 +10,7 @@ use crate::{
     buffers::{
         vertex::VertexBuffer,
         index::IndexBuffer,
-        uniform::UniformBuffer,
+        uniform::UniformBuffer, Buffer,
     },
     texture::Texture,
     sampler::Sampler,
@@ -90,18 +90,18 @@ impl Device {
     }
 
     /// Create a shader given a [`crate::shader::ShaderFile`]
-    pub fn create_shader(&self, source: ShaderFile) -> Shader {
+    pub fn create_shader(&self, source: ShaderFile, name: Option<&str>) -> Shader {
         match source {
-            ShaderFile::Spirv(bytes) => self.create_sprv_shader(bytes),
-            ShaderFile::Wgsl(s) => self.create_wgsl_shader(s),
+            ShaderFile::Spirv(bytes) => self.create_sprv_shader(bytes, name),
+            ShaderFile::Wgsl(s) => self.create_wgsl_shader(s, name),
         }
     }
 
     /// Create a shader given the wgsl source code
-    pub fn create_wgsl_shader(&self, source: &str) -> Shader {
+    pub fn create_wgsl_shader(&self, source: &str, name: Option<&str>) -> Shader {
         Shader {
             wgpu: self.wgpu.create_shader_module(&wgpu::ShaderModuleDescriptor {
-                label: Some("Shader"),
+                label: name,
                 source: wgpu::ShaderSource::Wgsl(source.into())
             })
         }
@@ -110,19 +110,19 @@ impl Device {
     /// Create a shader given the bytes of a spirv bindary.
     /// # Safety
     /// Wgpu makes no attempt to check if this is a valid spirv and can hence cause a driver crash or funky behaviour. See [`wgpu::Device::create_shader_module_spirv`]
-    pub fn create_sprv_shader(&self, source: &[u8]) -> Shader {
+    pub fn create_sprv_shader(&self, source: &[u8], name: Option<&str>) -> Shader {
         Shader {
             wgpu: self.wgpu.create_shader_module(&wgpu::ShaderModuleDescriptor {
-                label: Some("Shader"),
+                label: name,
                 source: wgpu::util::make_spirv(source),
             })
         }
     }
 
-    pub fn create_vertex_buffer<T: bytemuck::Pod>(&self, verticies: &[T]) -> VertexBuffer {
+    pub fn create_vertex_buffer<T: bytemuck::Pod>(&self, verticies: &[T], name: Option<&str>) -> VertexBuffer {
         VertexBuffer {
             wgpu: self.create_buffer_from_slice(verticies, wgpu::BufferUsages::VERTEX, 
-                Some("Vertex buffer")),
+                name),
             size: (verticies.len() * std::mem::size_of::<T>()) as u32
         }
     }
@@ -135,7 +135,7 @@ impl Device {
         }
     }
 
-    pub fn create_uniform_buffer<T>(&self, buf: &[T]) -> UniformBuffer
+    pub fn create_uniform_buffer<T>(&self, buf: &[T], name: Option<&str>) -> UniformBuffer
     where
         T: bytemuck::Pod + 'static + Copy
     {
@@ -143,7 +143,7 @@ impl Device {
             size: std::mem::size_of::<T>(),
             count: buf.len(),
             wgpu: self.wgpu.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Uniform buffer"),
+                label: name,
                 contents: bytemuck::cast_slice(buf),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }),
@@ -154,10 +154,10 @@ impl Device {
         &self,
         slice: &[T],
         usage: wgpu::BufferUsages,
-        label: Option<&str>
+        name: Option<&str>
     ) -> wgpu::Buffer {
         self.wgpu.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label,
+            label: name,
             contents: bytemuck::cast_slice(slice),
             usage,
         })
@@ -168,7 +168,8 @@ impl Device {
         &self,
         size: euclid::Size2D<u32, ScreenSpace>,
         format: wgpu::TextureFormat,
-        usage: wgpu::TextureUsages
+        usage: wgpu::TextureUsages,
+        name: Option<&str>,
     ) -> Texture {
         let texture_extent = wgpu::Extent3d {
             width: size.width,
@@ -177,7 +178,7 @@ impl Device {
         };
 
         let texture = self.wgpu.create_texture( &wgpu::TextureDescriptor {
-            label: None,
+            label: name,
             size: texture_extent,
             mip_level_count: 1,
             sample_count: 1,
@@ -197,10 +198,10 @@ impl Device {
         }
     }
 
-    pub fn create_sampler(&self, mag_filter: wgpu::FilterMode, min_filter: wgpu::FilterMode) -> Sampler {
+    pub fn create_sampler(&self, mag_filter: wgpu::FilterMode, min_filter: wgpu::FilterMode, name: Option<&str>) -> Sampler {
         Sampler {
             wgpu: self.wgpu.create_sampler( &wgpu::SamplerDescriptor{
-                label: None,
+                label: name,
                 address_mode_u: wgpu::AddressMode::ClampToEdge,
                 address_mode_v: wgpu::AddressMode::ClampToEdge,
                 address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -216,7 +217,7 @@ impl Device {
         }
     }
 
-    pub fn create_binding_group_layout(&self, index: u32, slots: &[Binding]) -> BindingGroupLayout {
+    pub fn create_binding_group_layout(&self, index: u32, slots: &[Binding], name: Option<&str>) -> BindingGroupLayout {
         let mut bindings = Vec::new();
 
         for s in slots {
@@ -229,13 +230,13 @@ impl Device {
         }
 
         let layout = self.wgpu.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
+            label: name,
             entries: bindings.as_slice()
         });
         BindingGroupLayout::new(index, layout, bindings.len())
     }
 
-    pub fn create_binding_group(&self, layout: &BindingGroupLayout, binds: &[&dyn Bind]) -> BindingGroup {
+    pub fn create_binding_group(&self, layout: &BindingGroupLayout, binds: &[&dyn Bind], name: Option<&str>) -> BindingGroup {
         assert_eq!(binds.len(), layout.size, "Layout slot doesn't match bindings");
 
         let mut bindings = Vec::new();
@@ -248,7 +249,7 @@ impl Device {
             layout.set_index,
             self.wgpu.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: &layout.wgpu,
-                label: None,
+                label: name,
                 entries: bindings.as_slice()
             }),
         )
@@ -260,7 +261,7 @@ impl Device {
         if let Some(ss) = sets {
             for (index, bindings) in ss.iter().enumerate() {
                 log::debug!("Created binding group layout");
-                b_layouts.push(self.create_binding_group_layout(index as u32, bindings.0))
+                b_layouts.push(self.create_binding_group_layout(index as u32, bindings.0, bindings.1))
             }
         }
         
@@ -268,10 +269,10 @@ impl Device {
             b_layouts,
         }
     }
-    
-    /// Update a uniform buffer
-    pub fn update_uniform_buffer<T: bytemuck::Pod + Copy + 'static>(&self, slice: &[T], buf: &UniformBuffer) {
-        self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(slice));
+
+    /// Updates a buffer
+    pub fn update_buffer<T: bytemuck::Pod + Copy + 'static, U: Buffer>(&self, slice: &[T], buf: &U) {
+        self.queue.write_buffer(buf.wgpu_buffer(), 0, bytemuck::cast_slice(slice))
     }
 
     /// Create a pipeline
@@ -283,6 +284,7 @@ impl Device {
         shader: &Shader,
         tex_format: wgpu::TextureFormat,
         multisample: wgpu::MultisampleState,
+        name: String
     ) -> Pipeline {
         let vertex_attrs = vertex_layout.to_wgpu();
         let mut b_layouts = Vec::new();
@@ -292,7 +294,7 @@ impl Device {
         }
 
         let layout = &self.wgpu.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
+            label: Some(&format!("{} pipeline layout", &name)),
             bind_group_layouts: b_layouts.as_slice(),
             push_constant_ranges: &[],
         });
@@ -317,8 +319,10 @@ impl Device {
             write_mask: wgpu::ColorWrites::ALL,
         }];
 
+        let n = format!("{} pipeline", &name);
+
         let desc = wgpu::RenderPipelineDescriptor {
-            label: None,
+            label: Some(&n),
             layout: Some(layout),
             vertex: wgpu::VertexState {
                 module: &shader.wgpu,

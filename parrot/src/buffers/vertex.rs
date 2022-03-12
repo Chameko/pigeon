@@ -2,6 +2,7 @@ use crate::{
     binding::BindingGroup,
     painter::{Draw, RenderPassExtention},
 };
+use super::Buffer;
 
 /// Represents the vertex buffer
 #[derive(Debug)]
@@ -22,5 +23,11 @@ impl Draw for VertexBuffer {
     fn draw<'a, 'b>(&'a self, binding: &'a BindingGroup, pass: &'b mut wgpu::RenderPass<'a>) {
         pass.set_binding(binding, &[]);
         pass.draw_buffer(self);
+    }
+}
+
+impl Buffer for VertexBuffer {
+    fn wgpu_buffer(&self) -> &wgpu::Buffer {
+        &self.wgpu
     }
 }

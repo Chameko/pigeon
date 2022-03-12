@@ -5,6 +5,7 @@ pub enum VertexFormat {
     Floatx2,
     Floatx3,
     Floatx4,
+    Uint32,
 }
 
 // wgpu conversion
@@ -15,16 +16,6 @@ impl From<&VertexFormat> for wgpu::VertexFormat {
 }
 
 impl VertexFormat {
-    /// Return bytesize. Uses F32 which have a byte size of 4
-    const fn bytesize(self) -> usize {
-        match self {
-            VertexFormat::Floatx1 => 4,
-            VertexFormat::Floatx2 => 8,
-            VertexFormat::Floatx3 => 12,
-            VertexFormat::Floatx4 => 16,
-        }
-    }
-
     /// Transform into wgpu counterpart [`wgpu::VertexFormat`]
     pub fn to_wgpu(&self) -> wgpu::VertexFormat {
         match self {
@@ -32,6 +23,7 @@ impl VertexFormat {
             VertexFormat::Floatx2 => wgpu::VertexFormat::Float32x2,
             VertexFormat::Floatx3 => wgpu::VertexFormat::Float32x3,
             VertexFormat::Floatx4 => wgpu::VertexFormat::Float32x4,
+            VertexFormat::Uint32 => wgpu::VertexFormat::Uint32,
         }
     }
 }

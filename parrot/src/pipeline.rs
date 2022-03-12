@@ -35,6 +35,7 @@ pub trait Plumber<'a>: Deref<Target = PipelineCore> {
 
     /// A type that can be used with prepare
     type PrepareContext;
+
     /// Your uniforms
     type Uniforms: bytemuck::Pod + Copy + 'static;
 
@@ -46,6 +47,9 @@ pub trait Plumber<'a>: Deref<Target = PipelineCore> {
 
     /// Prepare the uniform buffers with the supplied PrepareContext.
     fn prepare(&'a self, context: Self::PrepareContext) -> Option<(&'a UniformBuffer, Vec<Self::Uniforms>)>;
+
+    /// Returns the pipeline's name, used for debugging purposes
+    fn name() -> String;
 }
 
 #[derive(Debug)]
@@ -58,7 +62,7 @@ pub struct PipelineCore {
 
 #[derive(Debug)]
 /// A Set of bindings
-pub struct Set<'a>(pub &'a[Binding]);
+pub struct Set<'a>(pub &'a[Binding], pub Option<&'a str>);
 
 #[derive(Debug)]
 /// Description used to create pipelines

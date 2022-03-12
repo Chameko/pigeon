@@ -17,6 +17,7 @@ use crate::{
         vertex::VertexBuffer,
         uniform::UniformBuffer,
         index::IndexBuffer,
+        Buffer,
     }, 
 };
 
@@ -42,7 +43,7 @@ pub trait Draw {
 /// You can present a frame with [`Painter::present`]
 #[derive(Debug)]
 pub struct Painter {
-    device: Device,
+    pub device: Device,
 }
 
 impl Painter {
@@ -90,13 +91,14 @@ impl Painter {
         size: Size2D<u32, ScreenSpace>,
         format: wgpu::TextureFormat,
         usage: wgpu::TextureUsages,
+        name: Option<&str>,
     ) -> Texture {
-        self.device.create_texture(size, format, usage)
+        self.device.create_texture(size, format, usage, name)
     }
 
     /// Create a vertex buffer
-    pub fn vertex_buffer<T: bytemuck::Pod + Copy + 'static>(&self, verts: &[T]) -> VertexBuffer {
-        self.device.create_vertex_buffer(verts)
+    pub fn vertex_buffer<T: bytemuck::Pod + Copy + 'static>(&self, verts: &[T], name: Option<&str>) -> VertexBuffer {
+        self.device.create_vertex_buffer(verts, name)
     }
 
     /// Create a index buffer
@@ -105,26 +107,26 @@ impl Painter {
     }
 
     /// Create a uniform buffer
-    pub fn uniform_buffer<T: bytemuck::Pod + Copy + 'static>(&self, buf: &[T]) -> UniformBuffer {
-        self.device.create_uniform_buffer(buf)
+    pub fn uniform_buffer<T: bytemuck::Pod + Copy + 'static>(&self, buf: &[T], name: Option<&str>) -> UniformBuffer {
+        self.device.create_uniform_buffer(buf, name)
     }
 
-    /// Createa a binding group
-    pub fn binding_group(&self, layout: &BindingGroupLayout, binds: &[&dyn Bind]) -> BindingGroup {
-        self.device.create_binding_group(layout, binds)
+    /// Create a binding group
+    pub fn binding_group(&self, layout: &BindingGroupLayout, binds: &[&dyn Bind], name: Option<&str>) -> BindingGroup {
+        self.device.create_binding_group(layout, binds, name)
     }
 
     /// Create a sampler
-    pub fn sampler(&self, min_filter: FilterMode, mag_filter: FilterMode) -> Sampler {
-        self.device.create_sampler(min_filter, mag_filter)
+    pub fn sampler(&self, min_filter: FilterMode, mag_filter: FilterMode, name: Option<&str>) -> Sampler {
+        self.device.create_sampler(min_filter, mag_filter, name)
     }
 
     /// Create a pipeline
-    pub fn pipeline<T: Plumber<'static>>(&self, blending: Blending, format: TextureFormat) -> T {
+    pub fn pipeline<T: Plumber<'static>>(&self, blending: Blending, format: TextureFormat, shader_name: Option<&str>) -> T {
         let desc = T::description();
         let pipe_layout = self.device.create_pipeline_layout(desc.pipeline_layout);
         let vertex_layout = VertexLayout::from::<T::Vertex>(desc.vertex_layout);
-        let shader = self.device.create_shader(desc.shader);
+        let shader = self.device.create_shader(desc.shader, shader_name);
 
         T::setup(self.device.create_pipeline(
             pipe_layout,
@@ -136,7 +138,8 @@ impl Painter {
                 count: 1,
                 mask: !0,
                 alpha_to_coverage_enabled: false,
-            }
+            },
+            T::name()
         ),
         &self.device)
     }
@@ -144,8 +147,13 @@ impl Painter {
     /// Update the pipeline
     pub fn update_pipeline<'a, T: Plumber<'a>>(&mut self, pipe: &'a T, p: T::PrepareContext) {
         if let Some((buffer, uniforms)) = pipe.prepare(p) {
-            self.device.update_uniform_buffer::<T::Uniforms>(uniforms.as_slice(), buffer);
+            self.device.update_buffer::<T::Uniforms, UniformBuffer>(uniforms.as_slice(), buffer);
         }
+    }
+
+    /// Update a buffer
+    pub fn update_buffer<U: Buffer, T: bytemuck::Pod + Copy + 'static>(&mut self, data: &[T], buffer: &U) {
+        self.device.update_buffer(data, buffer);
     }
 
     /// Get a frame
