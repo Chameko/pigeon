@@ -26,14 +26,20 @@ This keeps note of the API changes so I don't have to stare at commit messages a
 
 - Plumbers now have to know what user defined vertex type they're using
 
-## Version 0.0.4
+## Version 0.1.0
 
 ### Changes
 
 - Plumbers now have a function that returns their name. This is for labeling.
 
-- Lables EVERYWHERE. Hopefully make debuging less painful.
+- Lables EVERYWHERE.
 
 - Device in painter is now public
 
-- Made updating buffers generic and added function in painter for it
+- You can now update vertex and index buffers
+
+- Removed draw and paintable traints, they were confusing and would be better implemented in an external crate
+
+- The prepare function for plumber now works for multiple uniform buffers
+
+- Update buffer functions now properly update a buffers size

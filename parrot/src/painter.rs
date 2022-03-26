@@ -17,13 +17,8 @@ use crate::{
         vertex::VertexBuffer,
         uniform::UniformBuffer,
         index::IndexBuffer,
-        Buffer,
     }, 
 };
-
-pub trait Draw {
-    fn draw<'a, 'b>(&'a self, binding: &'a BindingGroup, pass: &'b mut wgpu::RenderPass<'a>);
-}
 
 /// The main interface for parrot. *Handles the rendering shenanigans so YOU don't have to*TM
 /// 
@@ -102,8 +97,8 @@ impl Painter {
     }
 
     /// Create a index buffer
-    pub fn index_buffer(&self, indicies: &[u16]) -> IndexBuffer {
-        self.device.create_index_buffer(indicies)
+    pub fn index_buffer(&self, indicies: &[u16], name: Option<&str>) -> IndexBuffer {
+        self.device.create_index_buffer(indicies, name)
     }
 
     /// Create a uniform buffer
@@ -145,15 +140,25 @@ impl Painter {
     }
 
     /// Update the pipeline
-    pub fn update_pipeline<'a, T: Plumber<'a>>(&mut self, pipe: &'a T, p: T::PrepareContext) {
-        if let Some((buffer, uniforms)) = pipe.prepare(p) {
-            self.device.update_buffer::<T::Uniforms, UniformBuffer>(uniforms.as_slice(), buffer);
+    pub fn update_pipeline<'a, T: Plumber<'a>>(&mut self, pipe: &'a mut T, p: T::PrepareContext) {
+        for (buffer, uniforms) in pipe.prepare(p) {
+            self.device.update_buffer::<T::Uniforms>(uniforms.as_slice(), buffer);
         }
     }
 
-    /// Update a buffer
-    pub fn update_buffer<U: Buffer, T: bytemuck::Pod + Copy + 'static>(&mut self, data: &[T], buffer: &U) {
+    /// Update a uniform buffer
+    pub fn update_buffer<T: bytemuck::Pod + Copy + 'static>(&mut self, data: &[T], buffer: &mut UniformBuffer) {
         self.device.update_buffer(data, buffer);
+    }
+
+    /// Update a vertex buffer
+    pub fn update_vertex_buffer<T: bytemuck::Pod + Copy + 'static>(&mut self, vertices: &[T], buffer: &mut VertexBuffer) {
+        self.device.update_vertex_buffer(vertices, buffer);
+    }
+    
+    /// Update a index buffer
+    pub fn update_index_buffer(&mut self, indicies: &[u16], buffer: &mut IndexBuffer) {
+        self.device.update_index_buffer(indicies, buffer);
     }
 
     /// Get a frame
@@ -232,7 +237,6 @@ pub trait RenderPassExtention<'a> {
 
     fn set_parrot_index_buffer(&mut self, index_buf: &'a IndexBuffer);
     fn set_parrot_vertex_buffer(&mut self, vertex_buf: &'a VertexBuffer);
-    fn parrot_draw<T: Draw>(&mut self, drawable: &'a T, binding: &'a BindingGroup);
     fn draw_buffer(&mut self, buf: &'a VertexBuffer);
     fn draw_buffer_range(&mut self, buf: &'a VertexBuffer, range: Range<u32>);
     fn draw_indexed(&mut self, indicies: Range<u32>, instances: Range<u32>);
@@ -271,10 +275,6 @@ impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
 
     fn set_parrot_vertex_buffer(&mut self, vertex_buf: &'a VertexBuffer) {
         self.set_vertex_buffer(0, vertex_buf.slice())
-    }
-
-    fn parrot_draw<T: Draw>(&mut self, drawable: &'a T, binding: &'a BindingGroup) {
-        drawable.draw(binding, self);
     }
 
     fn draw_buffer(&mut self, buf: &'a VertexBuffer) {

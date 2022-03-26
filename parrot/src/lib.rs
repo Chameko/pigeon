@@ -31,7 +31,6 @@ pub mod sampler;
 pub mod color;
 pub mod error;
 pub mod frame;
-pub mod paintable;
 
 pub use pipeline::Plumber;
 pub use painter::RenderPassExtention;

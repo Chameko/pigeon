@@ -4,7 +4,6 @@ use pigeon_parrot as parrot;
 use parrot::{
     pipeline::{Plumber,
         PipelineDescription,
-        Set,
         PipelineCore,
         Pipeline,
     },
@@ -43,8 +42,8 @@ impl<'a> Plumber<'a> for Triangle {
         }
     }
 
-    fn prepare(&'a self, context: Self::PrepareContext) -> Option<(&'a UniformBuffer, Vec<Self::Uniforms>)> {
-        None
+    fn prepare(&'a mut self, context: Self::PrepareContext) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
+        vec![]
     }
 
     fn description() -> PipelineDescription<'a> {

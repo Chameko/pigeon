@@ -10,7 +10,7 @@ use crate::{
     buffers::{
         vertex::VertexBuffer,
         index::IndexBuffer,
-        uniform::UniformBuffer, Buffer,
+        uniform::UniformBuffer,
     },
     texture::Texture,
     sampler::Sampler,
@@ -127,8 +127,8 @@ impl Device {
         }
     }
 
-    pub fn create_index_buffer(&self, indicies: &[u16]) -> IndexBuffer {
-        let index_buf = self.create_buffer_from_slice(indicies, wgpu::BufferUsages::INDEX, Some("Index buffer"));
+    pub fn create_index_buffer(&self, indicies: &[u16], name: Option<&str>) -> IndexBuffer {
+        let index_buf = self.create_buffer_from_slice(indicies, wgpu::BufferUsages::INDEX, name);
         IndexBuffer {
             wgpu: index_buf,
             elements: indicies.len() as u32,
@@ -270,9 +270,24 @@ impl Device {
         }
     }
 
-    /// Updates a buffer
-    pub fn update_buffer<T: bytemuck::Pod + Copy + 'static, U: Buffer>(&self, slice: &[T], buf: &U) {
-        self.queue.write_buffer(buf.wgpu_buffer(), 0, bytemuck::cast_slice(slice))
+    /// Updates a uniform buffer
+    pub fn update_buffer<T: bytemuck::Pod + Copy + 'static>(&self, slice: &[T], buf: &mut UniformBuffer) {
+        self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(slice));
+        buf.size = std::mem::size_of::<T>();
+        buf.count = slice.len();
+    }
+
+    /// Updates a vertex buffer
+    pub fn update_vertex_buffer<T: bytemuck::Pod + Copy + 'static>(&self, vertices: &[T], buf: &mut VertexBuffer) {
+        self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(vertices));
+        // Update the size of it.
+        buf.size = (vertices.len() * std::mem::size_of::<T>()) as u32
+    }
+
+    /// Update a index buffer
+    pub fn update_index_buffer(&self, indicies: &[u16], buf: &mut IndexBuffer) {
+        self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(indicies));
+        buf.elements = indicies.len() as u32
     }
 
     /// Create a pipeline

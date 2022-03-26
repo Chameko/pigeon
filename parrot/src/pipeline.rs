@@ -46,7 +46,7 @@ pub trait Plumber<'a>: Deref<Target = PipelineCore> {
     fn setup(pipe: Pipeline, device: &Device) -> Self;
 
     /// Prepare the uniform buffers with the supplied PrepareContext.
-    fn prepare(&'a self, context: Self::PrepareContext) -> Option<(&'a UniformBuffer, Vec<Self::Uniforms>)>;
+    fn prepare(&'a mut self, context: Self::PrepareContext) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)>;
 
     /// Returns the pipeline's name, used for debugging purposes
     fn name() -> String;
