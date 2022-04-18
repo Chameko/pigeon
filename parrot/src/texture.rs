@@ -4,6 +4,7 @@ use crate::{
     binding::Bind, device::Device, transform::ScreenSpace, color::{Color}
 };
 
+#[derive(Debug)]
 /// A texture
 pub struct Texture {
     /// Wrapped wgpu value
@@ -44,23 +45,22 @@ impl Texture {
         t_pixels: &[T],
         device: &Device
     ) where
-    T: bytemuck::Pod + Clone + Copy + 'static,
+    T: bytemuck::Pod + Clone + Copy + 'static + Color,
     {
         assert!(
             t_pixels.len() as u32 >= texture.size.area(),
-            "Fatal: incorrect length for t_pixel buffer"
+            "Fatal: incorrect length for t_pixel buffer. Pixels length: {} || Required buffer length: {}", t_pixels.len(), texture.size.area()
         );
         
-        let t_pixels : &[u8] = bytemuck::cast_slice(t_pixels);
-        
         let rect = Rect::from_size(texture.size);
+        let t_pixels = bytemuck::cast_slice(t_pixels);
         
         Self::copy(
             texture,
             rect,
             &device.queue,
             t_pixels,
-            t_pixels.len() as u32 / texture.extent.height * 4 as u32,
+            t_pixels.len() as u32 / texture.extent.height,
             texture.extent
         )
     }
@@ -180,7 +180,7 @@ impl Texture {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &texture.wgpu,
-                mip_level: 1,
+                mip_level: 0,
                 origin: wgpu::Origin3d {
                     x: desitination.origin.x,
                     y: desitination.origin.y,

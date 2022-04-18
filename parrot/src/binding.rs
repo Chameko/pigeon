@@ -45,7 +45,7 @@ pub trait Bind {
 pub enum BindingType {
     UniformBuffer,
     Sampler,
-    Texture,
+    Texture {multisampled: bool},
 }
 
 impl BindingType {
@@ -59,10 +59,10 @@ impl BindingType {
             BindingType::Sampler => wgpu::BindingType::Sampler(
                 wgpu::SamplerBindingType::Filtering
             ),
-            BindingType::Texture => wgpu::BindingType::Texture {
+            BindingType::Texture{ multisampled } => wgpu::BindingType::Texture {
                 sample_type: wgpu::TextureSampleType::Float{ filterable: true },
                 view_dimension: wgpu::TextureViewDimension::D2,
-                multisampled: false // TODO: add multisampling
+                multisampled: *multisampled
             }
         }
     }

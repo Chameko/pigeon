@@ -8,8 +8,7 @@ use crate::{
     },
     vertex::{VertexLayout, VertexFormat},
     shader::ShaderFile,
-    device::Device,
-    buffers::uniform::UniformBuffer,
+    buffers::uniform::UniformBuffer, Painter,
 };
 
 #[derive(Debug)]
@@ -28,36 +27,35 @@ pub struct PipelineLayout {
     pub b_layouts: Vec<BindingGroupLayout>,
 }
 
-/// A trait for managing pipelines and their functionality
+/// A trait for creating and managing a pipeline.
+/// 
+/// This trait is used to effectivly used to create your own pipeline while allowing parrot to perform some of the work.
 pub trait Plumber<'a>: Deref<Target = PipelineCore> {
-    /// The vertex type you're using
-    type Vertex: bytemuck::Pod + Copy + 'static;
-
-    /// A type that can be used with prepare
+    /// A type that containts the neccissary data for updating the uniform buffer
     type PrepareContext;
 
     /// Your uniforms
     type Uniforms: bytemuck::Pod + Copy + 'static;
 
-    /// Returns a [`PipelineDescription`]. This describes the layout of vertecies, sets of bindings and your shader file
+    /// Returns a [`PipelineDescription`]. This describes the layout of vertecies, sets of bindings and your shader file.
     fn description() -> PipelineDescription<'a>;
 
-    /// This is what will create your pipeline.
-    fn setup(pipe: Pipeline, device: &Device) -> Self;
+    /// Used to create your pipeline. Supplies the wgpu pipeline and device.
+    fn setup(pipe: Pipeline, painter: &Painter) -> Self;
 
-    /// Prepare the uniform buffers with the supplied PrepareContext.
+    /// Create the uniforms neccissary for an update with the supplied [`PrepareContext`].
     fn prepare(&'a mut self, context: Self::PrepareContext) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)>;
-
-    /// Returns the pipeline's name, used for debugging purposes
-    fn name() -> String;
 }
 
 #[derive(Debug)]
-/// The core components of a pipeline. [`Plumber`] derefs to this during a render pass.
+/// The core components of a pipeline. These are used by wgpu when performing a render pass, hence your pipeline must have some method of supplying the information.
 pub struct PipelineCore {
+    /// The actual pipeline
     pub pipeline: Pipeline,
-    pub bindings: Option<BindingGroup>,
-    pub uniforms: Option<UniformBuffer>,
+    /// The bindings to be used in the render pass
+    pub bindings: Vec<BindingGroup>,
+    /// The uniforms to be used in the render pass
+    pub uniforms: Vec<UniformBuffer>,
 }
 
 #[derive(Debug)]
@@ -65,14 +63,16 @@ pub struct PipelineCore {
 pub struct Set<'a>(pub &'a[Binding], pub Option<&'a str>);
 
 #[derive(Debug)]
-/// Description used to create pipelines
+/// A description of how a pipeline is laid out. This is used by parrot to create your pipeline.
 pub struct PipelineDescription<'a> {
     /// Vertex layout of the pipeline
     pub vertex_layout: &'a [VertexFormat],
     /// Bindings used to create a pipeline layout
     pub pipeline_layout: Option<&'a [Set<'a>]>,
     /// Shader file
-    pub shader: ShaderFile
+    pub shader: ShaderFile,
+    /// Name of the pipeline
+    pub name: Option<&'a str>
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

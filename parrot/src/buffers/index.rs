@@ -3,13 +3,15 @@
 pub struct IndexBuffer {
     /// Wrapped wgpu type
     pub wgpu: wgpu::Buffer,
-    /// Number of elements
-    pub elements: u32,
+    /// Size of the buffer in indicies
+    pub size: u32,
+    /// Name
+    pub name: Option<String>
 }
 
 impl IndexBuffer {
     pub fn slice(&self) -> wgpu::BufferSlice {
         self.wgpu
-            .slice(0..(self.elements as usize * std::mem::size_of::<u16>()) as u64)
+            .slice(0..(self.size as usize * std::mem::size_of::<u16>()) as u64)
     }
 }

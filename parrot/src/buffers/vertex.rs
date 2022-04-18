@@ -5,6 +5,8 @@ pub struct VertexBuffer {
     pub size: u32,
     /// Wrapped wgpu buffer
     pub wgpu: wgpu::Buffer,
+    /// Name of the vertex buffer
+    pub name: Option<String>
 }
 
 impl VertexBuffer {
