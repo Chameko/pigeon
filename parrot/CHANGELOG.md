@@ -59,7 +59,7 @@ Also: **EXAMPLES WOOOOOOOOOOOOOOOOOOOOO**, now you can see parrot in action
 
 - Fixed a lot of bugs
 
-## New
+### New
 
 - Added depth textures
 
@@ -72,3 +72,17 @@ Also: **EXAMPLES WOOOOOOOOOOOOOOOOOOOOO**, now you can see parrot in action
 - Added frame buffers
 
 - Added basic logging
+
+## Version 0.2.1
+
+This update focus mainly about having better re-exports and updating uniform buffers to be in line with the others
+
+### Changes
+
+- Update uniform function now creates a new buffer if the old one is too small
+
+- Added some more logging to uniform buffers
+
+- Better re-exports i.e. you'll only need pigeon_parrot::Texture not pigeon_parrot::texture::Texture
+
+- Prepare now gives you the painter. This will allow you more freedom with how you manipulate you pipeline in the fn and prevent situations where you have to hand it in via the PrepareContext

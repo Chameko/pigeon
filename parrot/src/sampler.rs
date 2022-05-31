@@ -3,6 +3,7 @@ use crate::binding::Bind;
 /// Represents a sampler
 /// 
 /// Defines how a pipeline will sample a texture view
+#[derive(Debug)]
 pub struct Sampler {
     pub wgpu: wgpu::Sampler,
 }

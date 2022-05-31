@@ -47,7 +47,7 @@ impl Vertex {
 
 /// This is our pipeline, it should contain everything we need as so we can deref to [`PipelineCore`] when we render.
 pub struct TrianglePipe {
-    /// This is the pipeline core that we will return. Normally you would instead store your [`parrot::binding::BindingGroup`] and [`parrot::buffers::UniformBuffer`] and create it from those, but as this is a simple pipeline with no textures or uniforms, I won't bother
+    /// This is the pipeline core that we will return. Normally you would instead store your [`parrot::binding::BindingGroup`] and [`parrot::buffers::UniformBuffer`] and create it from those, but I won't bother here.
     pipeline: PipelineCore,
     /// The vertex buffer for our pipeline
     vertices: VertexBuffer,
@@ -122,7 +122,7 @@ impl<'a> Plumber<'a> for TrianglePipe {
     }
 
     // This function is used to update our uniform buffer. As we don't have one, we return a blank vector
-    fn prepare(&'a mut self, _context: Self::PrepareContext) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
+    fn prepare(&'a mut self, _context: Self::PrepareContext, _: &mut Painter) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
         vec![]
     }
 

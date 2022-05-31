@@ -145,7 +145,7 @@ impl Device {
     where
         T: bytemuck::Pod + 'static + Copy
     {
-        log::info!("Created uniform buffer");
+        log::info!("Created uniform buffer >> Name: {:?}", name);
         UniformBuffer {
             size: std::mem::size_of::<T>(),
             count: buf.len(),
@@ -154,16 +154,17 @@ impl Device {
                 contents: bytemuck::cast_slice(buf),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }),
+            name: name.map(|s| s.to_string())
         }
     }
 
     /// Create a depth buffer
-    pub fn create_depth_buffer(&self, size: Size2D<u32, ScreenSpace>, sample_count: u32, name: Option<&str>) -> DepthBuffer {
+    pub fn create_depth_buffer(&self, sample_count: u32, name: Option<&str>) -> DepthBuffer {
         log::info!("Created depth buffer");
         let format = DepthBuffer::FORMAT;
         let extent = wgpu::Extent3d {
-            width: size.width,
-            height: size.height,
+            width: self.size.width,
+            height: self.size.height,
             depth_or_array_layers: 1,
         };
 
@@ -183,7 +184,7 @@ impl Device {
             view,
             extent,
             format,
-            size,
+            size: self.size,
         }}
     }
 
@@ -284,7 +285,7 @@ impl Device {
                     format,
                     size
                 },
-                depth: Some(self.create_depth_buffer(size, sample_count, name))
+                depth: Some(self.create_depth_buffer(sample_count, name))
             }
         } else {
             FrameBuffer {

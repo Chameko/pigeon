@@ -93,7 +93,7 @@ impl<'a> Plumber<'a> for TrianglePipe {
     }
 
     // This function is used to update our uniform buffer. As we don't have one, we return a blank vector
-    fn prepare(&'a mut self, _context: Self::PrepareContext) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
+    fn prepare(&'a mut self, _context: Self::PrepareContext, _: &mut Painter) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
         vec![]
     }
 

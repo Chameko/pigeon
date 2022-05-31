@@ -20,13 +20,12 @@ use crate::{
     }, 
 };
 
-/// The main interface for parrot. *Handles the rendering shenanigans so YOU don't have to*TM
+/// The main interface for parrot. *Handles the rendering shenanigans so YOU don't have to*
 /// 
-/// # Setup
-/// ## General
+/// # General
 /// Use [`Painter::for_surface`] to create the painter and the configure the surface with [`Painter::configure`]
 /// 
-/// ## Pipelie
+/// # Pipeline
 /// Parrot allows you to create your own pipelines (wow).
 /// See [`Plumber`] trait
 /// 
@@ -115,7 +114,7 @@ impl Painter {
             size: self.device.size(),
             depth: Some(self
                 .device
-                .create_depth_buffer(self.device.size(), self.sample_count, Some("Current frame depth texture")))
+                .create_depth_buffer(self.sample_count, Some("Current frame depth texture")))
         })
     }
     
@@ -146,8 +145,9 @@ impl Painter {
         self.device.create_texture(size, format, usage, name, sample_count)
     }
 
-    pub fn depth_buffer(&self, size: Size2D<u32, ScreenSpace>, name: Option<&str>) -> DepthBuffer {
-        self.device.create_depth_buffer(size, self.sample_count, name)
+    /// Create a depth buffer
+    pub fn depth_buffer(&self, name: Option<&str>) -> DepthBuffer {
+        self.device.create_depth_buffer(self.sample_count, name)
     }
 
     /// Create a vertex buffer
@@ -258,15 +258,31 @@ impl Painter {
     }
 
     /// Update the pipeline
-    pub fn update_pipeline<'a, T: Plumber<'a>>(&mut self, pipe: &'a mut T, p: T::PrepareContext) {
-        for (buffer, uniforms) in pipe.prepare(p) {
-            self.device.update_buffer::<T::Uniforms>(uniforms.as_slice(), buffer);
+    pub fn update_pipeline<'a, T: Plumber<'a>>(&mut self, pipe: &'a mut T, prep: T::PrepareContext) {
+        for (buffer, uniforms) in pipe.prepare(prep, self) {
+            log::info!("Updating pipeline -------");
+            if let Some(b) = self.update_buffer::<T::Uniforms>(uniforms.as_slice(), buffer) {
+                *buffer = b;
+            }
         }
     }
 
     /// Update a uniform buffer
-    pub fn update_buffer<T: bytemuck::Pod + Copy + 'static>(&mut self, data: &[T], buffer: &mut UniformBuffer) {
-        self.device.update_buffer(data, buffer);
+    pub fn update_buffer<T: bytemuck::Pod + Copy + 'static>(&mut self, data: &[T], buffer: &mut UniformBuffer) -> Option<UniformBuffer> {
+        let bytes: &[u8] = bytemuck::cast_slice(data);
+        // Check if the uniform buffer is too big
+        if bytes.len() <= buffer.size * buffer.count {
+            log::info!("Updating uniform buffer >> Current max: {} || Updated size: {}",buffer.size * buffer.count, bytes.len());
+            self.device.update_buffer(data, buffer);
+            None
+        } else {
+            log::info!("Creating new uniform buffer >> Current max: {} || Updated size: {}",buffer.size * buffer.count, bytes.len());
+            if let Some(name) = buffer.name.clone() {
+                Some(self.uniform_buffer(data, Some(name.as_str())))
+            } else {
+                Some(self.uniform_buffer(data, None))
+            }
+        }
     }
 
     /// Updates the vertex buffer or, if too big, creates a new one big enough to fit the data
@@ -309,7 +325,7 @@ impl Painter {
         self.device.create_frame_buffer(size, format, self.sample_count, name, true)
     }
 
-    /// Creates a [`FrameBuffer`] with a **no** depth texture
+    /// Creates a [`FrameBuffer`] with **no** depth texture
     pub fn create_frame_buffer_no_depth(&self, size: Size2D<u32, ScreenSpace>, format: TextureFormat, name: Option<&str>) -> FrameBuffer {
         self.device.create_frame_buffer(size, format, self.sample_count, name, false)
     }
@@ -466,7 +482,7 @@ impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
     }
 
     fn set_binding(&mut self, group: &'a BindingGroup, offsets: &[u32]) {
-        log::info!("Set binding");
+        log::info!("Set binding group >> Index: {:?}", group.set_index);
         self.set_bind_group(group.set_index, &group.wgpu, offsets);
     }
 

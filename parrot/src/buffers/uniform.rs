@@ -1,11 +1,13 @@
 use std::num::NonZeroU64;
 
 use crate::binding::Bind;
+
 #[derive(Debug)]
 pub struct UniformBuffer {
     pub wgpu: wgpu::Buffer,
     pub size: usize,
     pub count: usize,
+    pub name: Option<String>
 }
 
 impl Bind for UniformBuffer {

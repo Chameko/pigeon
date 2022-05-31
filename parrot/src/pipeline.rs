@@ -44,7 +44,7 @@ pub trait Plumber<'a>: Deref<Target = PipelineCore> {
     fn setup(pipe: Pipeline, painter: &Painter) -> Self;
 
     /// Create the uniforms neccissary for an update with the supplied [`PrepareContext`].
-    fn prepare(&'a mut self, context: Self::PrepareContext) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)>;
+    fn prepare(&'a mut self, context: Self::PrepareContext, paint: &mut Painter) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)>;
 }
 
 #[derive(Debug)]

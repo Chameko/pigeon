@@ -50,3 +50,7 @@ pub mod frame;
 pub use pipeline::Plumber;
 pub use painter::RenderPassExtention;
 pub use painter::Painter;
+pub use texture::Texture;
+pub use sampler::Sampler;
+pub use buffers::*;
+pub use color::*;
