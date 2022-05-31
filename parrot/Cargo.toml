@@ -1,7 +1,7 @@
 [package]
 name = "pigeon-parrot"
 description = "A wrapper around wgpu for pigeon, designed to make things easier."
-authors = ["Connor Young"]
+authors = ["Chameko"]
 license = "MIT"
 readme = "./README.md"
 repository = "https://github.com/Chameko/pigeon"

@@ -1,5 +1,10 @@
 [package]
 name = "pigeon-2d"
+description = "A simple, flexable, cross-platform 2D rendering library."
+authors = ["Chameko"]
+license = "MIT"
+readme = "../README.md"
+repository = "https://github.com/Chameko/pigeon"
 version = "0.0.1"
 edition = "2021"
 
