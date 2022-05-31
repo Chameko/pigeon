@@ -1,8 +1,8 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
+extern crate pigeon_parrot as parrot;
+
+pub mod pipeline;
+pub mod graphics;
+pub mod pigeon;
+
+pub use pigeon::Pigeon;
+pub use parrot::transform;

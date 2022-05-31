@@ -5,6 +5,7 @@ pub enum VertexFormat {
     Floatx2,
     Floatx3,
     Floatx4,
+    Uint32,
 }
 
 // wgpu conversion
@@ -15,23 +16,24 @@ impl From<&VertexFormat> for wgpu::VertexFormat {
 }
 
 impl VertexFormat {
-    /// Return bytesize. Uses F32 which have a byte size of 4
+    /// Transform into wgpu counterpart [`wgpu::VertexFormat`]
+    const fn to_wgpu(&self) -> wgpu::VertexFormat {
+        match self {
+            VertexFormat::Floatx1 => wgpu::VertexFormat::Float32,
+            VertexFormat::Floatx2 => wgpu::VertexFormat::Float32x2,
+            VertexFormat::Floatx3 => wgpu::VertexFormat::Float32x3,
+            VertexFormat::Floatx4 => wgpu::VertexFormat::Float32x4,
+            VertexFormat::Uint32 => wgpu::VertexFormat::Uint32,
+        }
+    }
+
     const fn bytesize(self) -> usize {
         match self {
             VertexFormat::Floatx1 => 4,
             VertexFormat::Floatx2 => 8,
             VertexFormat::Floatx3 => 12,
             VertexFormat::Floatx4 => 16,
-        }
-    }
-
-    /// Transform into wgpu counterpart [`wgpu::VertexFormat`]
-    pub fn to_wgpu(&self) -> wgpu::VertexFormat {
-        match self {
-            VertexFormat::Floatx1 => wgpu::VertexFormat::Float32,
-            VertexFormat::Floatx2 => wgpu::VertexFormat::Float32x2,
-            VertexFormat::Floatx3 => wgpu::VertexFormat::Float32x3,
-            VertexFormat::Floatx4 => wgpu::VertexFormat::Float32x4,
+            VertexFormat::Uint32 => 4,
         }
     }
 }
@@ -39,6 +41,7 @@ impl VertexFormat {
 /// Represents a vertex layout and easily able to be converted to a [wgpu::VertexBufferLayout]
 #[derive(Debug, Clone)]
 pub struct VertexLayout {
+    /// Vertex attributes
     wgpu_attrs: Vec<wgpu::VertexAttribute>,
     size: usize,
 }
@@ -68,18 +71,12 @@ impl VertexLayout {
             vl.wgpu_attrs.push(wgpu::VertexAttribute {
                 shader_location: vl.wgpu_attrs.len() as u32,
                 offset: vl.size as wgpu::BufferAddress,
-                format: wgpu::VertexFormat::from(vfmt),
+                format: vfmt.to_wgpu(),
             });
             vl.size += vfmt.bytesize();
         }
+        log::debug!("Vertex layout: {:?}", vl);
         vl
-    }
-}
-
-// Convert array of Vertex formats to a VertexLayout
-impl From<&[VertexFormat]> for VertexLayout {
-    fn from(vformats: &[VertexFormat]) -> Self {
-        VertexLayout::from(vformats)
     }
 }
 

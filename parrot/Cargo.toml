@@ -1,11 +1,11 @@
 [package]
 name = "pigeon-parrot"
 description = "A wrapper around wgpu for pigeon, designed to make things easier."
-authors = ["Connor Young"]
+authors = ["Chameko"]
 license = "MIT"
 readme = "./README.md"
 repository = "https://github.com/Chameko/pigeon"
-version = "0.0.2"
+version = "0.2.1"
 edition = "2021"
 resolver = "2"
 
@@ -13,6 +13,13 @@ resolver = "2"
 
 [dependencies]
 wgpu = {version = "0.12.0", features = ["spirv"]}
+log = "0.4"
 bytemuck = {version = "1.7.3", features = ["derive"]}
 euclid = "0.22.6"
 thiserror = "1.0"
+
+[dev-dependencies]
+winit = "0.26.1"
+pollster = "0.2.5"
+env_logger = "0.9"
+image = { version = "0.24", features = ["png", "jpeg"], default-features = false}
