@@ -102,7 +102,7 @@ impl Device {
     /// Create a shader given the wgsl source code
     pub fn create_wgsl_shader(&self, source: &str, name: Option<&str>) -> Shader {
         Shader {
-            wgpu: self.wgpu.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            wgpu: self.wgpu.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: name,
                 source: wgpu::ShaderSource::Wgsl(source.into())
             })
@@ -114,7 +114,7 @@ impl Device {
     /// Wgpu makes no attempt to check if this is a valid spirv and can hence cause a driver crash or funky behaviour. See [`wgpu::Device::create_shader_module_spirv`]
     pub fn create_sprv_shader(&self, source: &[u8], name: Option<&str>) -> Shader {
         Shader {
-            wgpu: self.wgpu.create_shader_module(&wgpu::ShaderModuleDescriptor {
+            wgpu: self.wgpu.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: name,
                 source: wgpu::util::make_spirv(source),
             })
@@ -409,7 +409,7 @@ impl Device {
         let (src_factor, dst_factor, operation) = blending.as_wgpu();
 
         // I like your funny words magic man
-        let targets = [wgpu::ColorTargetState {
+        let targets = [Some(wgpu::ColorTargetState {
             format: tex_format,
             blend: Some(wgpu::BlendState {
                 color: wgpu::BlendComponent {
@@ -424,7 +424,7 @@ impl Device {
                 },
             }),
             write_mask: wgpu::ColorWrites::ALL,
-        }];
+        })];
 
         let desc = wgpu::RenderPipelineDescriptor {
             label: name,
@@ -504,7 +504,7 @@ impl Device {
         let (src_factor, dst_factor, operation) = blending.as_wgpu();
 
         // I like your funny words magic man
-        let targets = [wgpu::ColorTargetState {
+        let targets = [Some(wgpu::ColorTargetState {
             format: tex_format,
             blend: Some(wgpu::BlendState {
                 color: wgpu::BlendComponent {
@@ -519,7 +519,7 @@ impl Device {
                 },
             }),
             write_mask: wgpu::ColorWrites::ALL,
-        }];
+        })];
 
         let desc = wgpu::RenderPipelineDescriptor {
             label: name,
@@ -567,7 +567,7 @@ impl Device {
                 stencil_read_only: false,
             }),
             sample_count,
-            color_formats: &[format],
+            color_formats: &[Some(format)],
             multiview: None,
         })
     }

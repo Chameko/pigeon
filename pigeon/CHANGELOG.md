@@ -5,3 +5,7 @@ This keeps note of the API changes so I don't have to stare at commit messages a
 ## Version 0.1.0
 
 Initial release :D
+
+## Version 0.2.0
+
+- Update to wgpu 13.2 Note this means that you'll need to update your WGSL files to comform with the new standard.

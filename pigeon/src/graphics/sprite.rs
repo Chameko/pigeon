@@ -1,9 +1,7 @@
-use super::{Texture, Drawable, Breakdown};
+use super::{Breakdown, Drawable, Texture};
 use crate::pipeline::quad::{QuadPipe, QuadVertex};
-use euclid::{Point3D, Size2D, Translation3D, Rotation3D};
-use parrot::{
-    transform::{ObjectSpace, WorldSpace}
-};
+use euclid::{Point3D, Rotation3D, Size2D, Translation3D};
+use parrot::transform::{ObjectSpace, WorldSpace};
 use std::rc::Rc;
 
 /// Basic textured rectangle.
@@ -19,12 +17,16 @@ pub struct Sprite {
     /// The rotation of the sprite
     pub rotation: Rotation3D<f32, ObjectSpace, ObjectSpace>,
     /// The texture of the sprite
-    pub texture: Rc<Texture>
+    pub texture: Rc<Texture>,
 }
 
 impl Sprite {
     /// Create a new sprite
-    pub fn new(origin: impl Into<Point3D<f32, WorldSpace>>, size: impl Into<Size2D<f32, ObjectSpace>>, texture: Rc<Texture>) -> Self {
+    pub fn new(
+        origin: impl Into<Point3D<f32, WorldSpace>>,
+        size: impl Into<Size2D<f32, ObjectSpace>>,
+        texture: Rc<Texture>,
+    ) -> Self {
         Self {
             origin: origin.into(),
             size: size.into(),
@@ -61,22 +63,19 @@ impl Drawable for Sprite {
         let mut tl: Point3D<f32, ObjectSpace> = Point3D::new(
             -self.size.width / 2.0,
             self.size.height / 2.0,
-            self.origin.z
+            self.origin.z,
         );
-        let mut tr: Point3D<f32, ObjectSpace> = Point3D::new(
-            self.size.width / 2.0,
-            self.size.height / 2.0,
-            self.origin.z
-        );
+        let mut tr: Point3D<f32, ObjectSpace> =
+            Point3D::new(self.size.width / 2.0, self.size.height / 2.0, self.origin.z);
         let mut bl: Point3D<f32, ObjectSpace> = Point3D::new(
             -self.size.width / 2.0,
             -self.size.height / 2.0,
-            self.origin.z
+            self.origin.z,
         );
         let mut br: Point3D<f32, ObjectSpace> = Point3D::new(
             self.size.width / 2.0,
             -self.size.height / 2.0,
-            self.origin.z
+            self.origin.z,
         );
         // Rotate each of the points (this must be done in object space)
         for vert in [&mut tl, &mut tr, &mut bl, &mut br] {
@@ -94,7 +93,7 @@ impl Drawable for Sprite {
         Breakdown {
             vertices,
             indicies: vec![0, 1, 3, 0, 3, 2],
-            texture: Some(self.texture.clone())
+            texture: Some(self.texture.clone()),
         }
     }
 }

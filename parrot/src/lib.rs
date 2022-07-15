@@ -30,9 +30,6 @@
 //! ```
 //! I have created some examples (in the examples folder) that demonstrate parrots capabilities and will hopefully give you an idea of how to use parrot. To run them use `cargo run --example=ExampleNameHere`
 
-#[deny(clippy::pedantic)]
-#[warn(dead_code)]
-
 pub mod painter;
 pub mod pipeline;
 pub mod binding;

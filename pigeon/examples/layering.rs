@@ -1,18 +1,23 @@
 extern crate winit;
-use winit::event_loop::ControlFlow;
-use winit::event::{WindowEvent, Event};
-use pigeon_2d::pigeon::{Pigeon, draw_triangle, draw};
+use euclid::Size2D;
 use pigeon_2d::graphics::primative::Rectangle;
 use pigeon_2d::graphics::Rgba;
-use euclid::Size2D;
+use pigeon_2d::pigeon::{draw, draw_triangle, Pigeon};
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::ControlFlow;
 
 fn main() {
-    env_logger::builder().filter_level(log::LevelFilter::Debug).init();
-    
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     // Create an event loop
     let event_loop = winit::event_loop::EventLoop::new();
     // Create a window to draw to
-    let window = winit::window::WindowBuilder::new().with_title("Triangle :D").build(&event_loop).unwrap();
+    let window = winit::window::WindowBuilder::new()
+        .with_title("Triangle :D")
+        .build(&event_loop)
+        .unwrap();
 
     // Create a wgpu instance
     let instance = wgpu::Instance::new(wgpu::Backends::GL);
@@ -21,7 +26,12 @@ fn main() {
     // Get the size of the window
     let winsize = window.inner_size();
 
-    let mut p = Pigeon::new(surface, &instance, Size2D::new(winsize.width as f32, winsize.height as f32), 1);
+    let mut p = Pigeon::new(
+        surface,
+        &instance,
+        Size2D::new(winsize.width as f32, winsize.height as f32),
+        1,
+    );
 
     let rect = Rectangle::new((0.0, 0.0, 0.0), (100.0, 100.0), Rgba::GREEN);
     let rect2 = Rectangle::new((0.0, 0.0, -1.0), (90.0, 30.0), Rgba::BLUE);
@@ -34,28 +44,36 @@ fn main() {
 
         match event {
             // Window event
-            Event::WindowEvent { event: win_event, .. } => {
+            Event::WindowEvent {
+                event: win_event, ..
+            } => {
                 match win_event {
                     // Close if a close request is detected
                     WindowEvent::CloseRequested => {
                         println!("The close button was pressed; stopping");
                         *control_flow = ControlFlow::Exit
-                    },
+                    }
                     // Update the surface if resized
                     WindowEvent::Resized(size) => {
                         let size = euclid::Size2D::new(size.width, size.height);
-                        p.paint.configure(size, wgpu::PresentMode::Fifo, p.paint.preferred_format());
+                        p.paint.configure(
+                            size,
+                            wgpu::PresentMode::Fifo,
+                            p.paint.preferred_format(),
+                        );
                         let size = euclid::Size2D::new(size.width as f32, size.height as f32);
                         p.update_size(size);
                     }
-                    _ => ()
+                    _ => (),
                 }
-            },
+            }
             Event::RedrawRequested(_) => {
                 // Time to draw our shape :D
-                draw(&mut p, |cont| draw_triangle(cont, vec![&rect, &rect2, &rect3]))
+                draw(&mut p, |cont| {
+                    draw_triangle(cont, vec![&rect, &rect2, &rect3])
+                })
             }
-            _ => ()
+            _ => (),
         }
     });
 }

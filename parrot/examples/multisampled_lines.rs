@@ -131,14 +131,11 @@ fn main() {
     // Create the painter
     let mut painter = pollster::block_on(parrot::Painter::for_surface(surface, &instance, samples)).unwrap();
 
-    // Get the preferred texture format for the s
-    let pref_format = painter.preferred_format();
-
     // Get the size of the window
     let winsize = window.inner_size();
 
     // Configure the surface
-    painter.configure(Size2D::new(winsize.width, winsize.height), wgpu::PresentMode::Fifo, pref_format);
+    painter.configure(Size2D::new(winsize.width, winsize.height), wgpu::PresentMode::Fifo, wgpu::TextureFormat::Bgra8UnormSrgb);
 
     // Create our pipeline. As we are using lines instead of triangles as our primative geometry, we have to create a custom pipeline.
     // As we are passing in a function and not a closure, we must provide both the function type and pipeline type. The function type we need is already in parrot
@@ -147,7 +144,7 @@ fn main() {
     let mut pipeline = painter.custom_pipeline::<LinePipe, parrot::painter::PipelineFunction>(Some("Line shader"), create_pipeline);
 
     // Create the multisampled framebuffer
-    let mut multisample = painter.texture(Size2D::new(winsize.width, winsize.height), pref_format, TextureUsages::RENDER_ATTACHMENT, Some("Multisampled framebuffer"), true);
+    let mut multisample = painter.texture(Size2D::new(winsize.width, winsize.height), wgpu::TextureFormat::Bgra8UnormSrgb, TextureUsages::RENDER_ATTACHMENT, Some("Multisampled framebuffer"), true);
 
     // Initiate the event loop
     event_loop.run(move |event, _, control_flow| {
@@ -166,8 +163,8 @@ fn main() {
                     // Update the surface if resized
                     WindowEvent::Resized(size) => {
                         let size = euclid::Size2D::new(size.width, size.height);
-                        multisample = painter.texture(size, pref_format, TextureUsages::RENDER_ATTACHMENT, Some("Multisampled framebuffer"), true);
-                        painter.configure(size, wgpu::PresentMode::Fifo, pref_format)
+                        multisample = painter.texture(size, wgpu::TextureFormat::Bgra8UnormSrgb, TextureUsages::RENDER_ATTACHMENT, Some("Multisampled framebuffer"), true);
+                        painter.configure(size, wgpu::PresentMode::Fifo, wgpu::TextureFormat::Bgra8UnormSrgb)
                     },
                     WindowEvent::KeyboardInput { input: KeyboardInput { state: ElementState::Pressed, virtual_keycode: Some(VirtualKeyCode::Space), .. }, .. } => {
                         // Switch multisampling
@@ -182,7 +179,7 @@ fn main() {
                         // Update the pipeline
                         pipeline = painter.custom_pipeline::<LinePipe, parrot::painter::PipelineFunction>(Some("Line shader"), create_pipeline);
                         // Update the multisample texture
-                        multisample = painter.texture(painter.size(), pref_format, TextureUsages::RENDER_ATTACHMENT, Some("Multisampled framebuffer"), true);
+                        multisample = painter.texture(painter.size(), wgpu::TextureFormat::Bgra8UnormSrgb, TextureUsages::RENDER_ATTACHMENT, Some("Multisampled framebuffer"), true);
 
                         window.request_redraw();
                     }
@@ -242,7 +239,7 @@ fn create_pipeline(device: &Device, pipeline_layout: PipelineLayout, vertex_layo
     
     // Blending
     let (src_factor, dst_factor, operation) = Blending::default().as_wgpu();
-    let targets = [wgpu::ColorTargetState {
+    let targets = [Some(wgpu::ColorTargetState {
         format: wgpu::TextureFormat::Bgra8UnormSrgb,
         blend: Some(wgpu::BlendState {
             color: wgpu::BlendComponent {
@@ -257,7 +254,7 @@ fn create_pipeline(device: &Device, pipeline_layout: PipelineLayout, vertex_layo
             },
         }),
         write_mask: wgpu::ColorWrites::ALL,
-    }];
+    })];
 
     // Create the wgpu pipeline
     let desc = wgpu::RenderPipelineDescriptor {

@@ -9,7 +9,7 @@ use euclid::Size2D;
 use std::rc::Rc;
 
 fn main() {
-    env_logger::builder().filter_level(log::LevelFilter::Debug).init();
+    env_logger::builder().filter_level(log::LevelFilter::Debug).filter_module("wgpu", log::LevelFilter::Info).init();
     
     // Create an event loop
     let event_loop = winit::event_loop::EventLoop::new();
@@ -64,7 +64,7 @@ fn main() {
 
     let tex3 = p.paint.texture(Size2D::from(dimensions3), wgpu::TextureFormat::Rgba8UnormSrgb, wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST, Some("pigeon"), false);
     // Fill the texture with the image bytes
-    parrot::Texture::fill(&tex2, img_rgb3, &p.paint.device);
+    parrot::Texture::fill(&tex3, img_rgb3, &p.paint.device);
 
     let sprite_texture = Rc::new(Texture::new(texture, sampler.clone(), "logo"));
 
@@ -72,14 +72,12 @@ fn main() {
 
     let sprite_texture3 = Rc::new(Texture::new(tex3, sampler.clone(), "pigeon"));
 
-    let sprite = Sprite::new((-500.0, 300.0, 0.0), (364.0, 467.0), sprite_texture.clone());
-    let sprite2 = Sprite::new((500.0, 100.0, 0.0), (256.0, 256.0), sprite_texture2.clone());
+    let sprite = Sprite::new((-350.0, 0.0, 0.0), (364.0, 467.0), sprite_texture.clone());
+    let sprite2 = Sprite::new((0.0, 130.0, 0.0), (256.0, 256.0), sprite_texture2.clone());
 
-    let sprite3 = Sprite::new((0.0, -256.0, 0.0), (256.0, 256.0), sprite_texture2.clone());
+    let sprite3 = Sprite::new((350.0, 0.0, 0.0), (320.0, 213.0), sprite_texture3.clone());
 
-    let sprite4 = Sprite::new((300.0, 200.0, 0.0), (200.0, 300.0), sprite_texture3);
-
-    let sprite5 = Sprite::new((-500.0, -300.0, 0.0), (364.0, 467.0), sprite_texture.clone());
+    let sprite4 = Sprite::new((0.0, -130.0, 0.0), (256.0, 256.0), sprite_texture2);
 
     // Initiate the event loop
     event_loop.run(move |event, _, control_flow| {
@@ -107,7 +105,7 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 // Time to draw our shape :D
-                draw(&mut p, |cont| draw_quad(cont, vec![&sprite, &sprite2, &sprite4, &sprite3, &sprite5]))
+                draw(&mut p, |cont| draw_quad(cont, vec![&sprite, &sprite2, &sprite3, &sprite4]))
             }
             _ => ()
         }

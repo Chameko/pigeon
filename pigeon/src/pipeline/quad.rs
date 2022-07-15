@@ -1,15 +1,21 @@
+use super::{Render, RenderInformation, INDEX_INIT_SIZE, VERTEX_INIT_SIZE};
+use crate::graphics::Texture;
+use euclid::Transform3D;
 use parrot::{
-    Plumber,
+    binding::{Binding, BindingType},
     buffers::*,
-    pipeline::{PipelineCore, Pipeline, PipelineDescription, Set}, binding::{Binding, BindingType},
-    vertex::VertexFormat, Painter, painter::RenderPassExtention, transform::{ScreenSpace},
+    painter::RenderPassExtention,
+    pipeline::{Pipeline, PipelineCore, PipelineDescription, Set},
+    transform::ScreenSpace,
+    vertex::VertexFormat,
+    Painter, Plumber,
 };
 use pigeon_parrot::binding::BindingGroup;
+use std::{
+    collections::HashMap,
+    ops::{Deref, Range},
+};
 use wgpu::RenderPass;
-use std::{ops::{Deref, Range}, collections::HashMap};
-use euclid::Transform3D;
-use crate::graphics::Texture;
-use super::{VERTEX_INIT_SIZE, INDEX_INIT_SIZE, RenderInformation, Render};
 
 /// Helps [QuadPipe] know which texture to set depending on how many indicies deep it is in the buffer
 #[derive(Debug)]
@@ -39,31 +45,37 @@ impl Deref for QuadPipe {
 
 impl<'a> Plumber<'a> for QuadPipe {
     type PrepareContext = RenderInformation<QuadVertex>;
-    type Uniforms = [[f32;4];4];
+    type Uniforms = [[f32; 4]; 4];
 
     fn description() -> PipelineDescription<'a> {
         PipelineDescription {
             vertex_layout: &QuadVertex::VERTEX_LAYOUT,
             pipeline_layout: Some(&[
-                Set(&[
-                    Binding {
-                        binding: BindingType::Texture { multisampled: false },
-                        stage: wgpu::ShaderStages::FRAGMENT,
-                    },
-                    Binding {
-                        binding: BindingType::Sampler,
-                        stage: wgpu::ShaderStages::FRAGMENT,
-                    }
-                ], Some("Quad texture bind group")),
-                Set(&[
-                    Binding {
+                Set(
+                    &[
+                        Binding {
+                            binding: BindingType::Texture {
+                                multisampled: false,
+                            },
+                            stage: wgpu::ShaderStages::FRAGMENT,
+                        },
+                        Binding {
+                            binding: BindingType::Sampler,
+                            stage: wgpu::ShaderStages::FRAGMENT,
+                        },
+                    ],
+                    Some("Quad texture bind group"),
+                ),
+                Set(
+                    &[Binding {
                         binding: BindingType::UniformBuffer,
                         stage: wgpu::ShaderStages::VERTEX,
-                    }
-                ], Some("Quad transform bind group"))
+                    }],
+                    Some("Quad transform bind group"),
+                ),
             ]),
             shader: parrot::shader::ShaderFile::Wgsl(include_str!("./shaders/quad.wgsl")),
-            name: Some("Quad pipeline")
+            name: Some("Quad pipeline"),
         }
     }
 
@@ -73,10 +85,18 @@ impl<'a> Plumber<'a> for QuadPipe {
         let blank_index: Vec<u16> = Vec::with_capacity(INDEX_INIT_SIZE as usize);
         let blank_transform: Transform3D<f32, ScreenSpace, ScreenSpace> = Transform3D::identity();
 
-        let vertex_buffer = paint.vertex_buffer(blank_vertex.as_slice(), Some("Quad vertex buffer"));
+        let vertex_buffer =
+            paint.vertex_buffer(blank_vertex.as_slice(), Some("Quad vertex buffer"));
         let index_buffer = paint.index_buffer(blank_index.as_slice(), Some("Quad index buffer"));
-        let transform_buffer = paint.uniform_buffer(&[blank_transform.to_arrays()], Some("Quad transform buffer"));
-        let bind_group = paint.binding_group(&pipe.layout.b_layouts[1], &[&transform_buffer], Some("Quad transform binding group"));
+        let transform_buffer = paint.uniform_buffer(
+            &[blank_transform.to_arrays()],
+            Some("Quad transform buffer"),
+        );
+        let bind_group = paint.binding_group(
+            &pipe.layout.b_layouts[1],
+            &[&transform_buffer],
+            Some("Quad transform binding group"),
+        );
 
         Self {
             vertex_buffer,
@@ -86,12 +106,16 @@ impl<'a> Plumber<'a> for QuadPipe {
             core: PipelineCore {
                 pipeline: pipe,
                 bindings: vec![bind_group],
-                uniforms: vec![transform_buffer]
-            }
+                uniforms: vec![transform_buffer],
+            },
         }
     }
 
-    fn prepare(&'a mut self, prep: Self::PrepareContext, paint: &mut Painter) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
+    fn prepare(
+        &'a mut self,
+        prep: Self::PrepareContext,
+        paint: &mut Painter,
+    ) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)> {
         let mut vertices: Vec<QuadVertex> = vec![];
         let mut indices: Vec<u16> = vec![];
         let mut groups: Vec<Group> = vec![];
@@ -108,7 +132,10 @@ impl<'a> Plumber<'a> for QuadPipe {
                     // Add texture to the map
                     self.add_texture(&paint, &tex);
                 }
-                groups.push(Group{range: start2..indices.len() as u32, tex_id: tex.id});
+                groups.push(Group {
+                    range: start2..indices.len() as u32,
+                    tex_id: tex.id,
+                });
             } else {
                 panic!("Textured shape has no texture.")
             }
@@ -140,15 +167,24 @@ impl Render for QuadPipe {
         pass.set_parrot_vertex_buffer(&self.vertex_buffer);
         pass.set_parrot_index_buffer(&self.index_buffer);
 
-
         // Draw textured shapes
         if let Some(group) = self.groups.first() {
             // Set the first binding
-            pass.set_binding(self.texture_binds.get(&group.tex_id).expect("Cannot find texture in textures map"), &[]);
+            pass.set_binding(
+                self.texture_binds
+                    .get(&group.tex_id)
+                    .expect("Cannot find texture in textures map"),
+                &[],
+            );
             let mut prev_tex = group.tex_id;
             for g in &self.groups {
                 if prev_tex != g.tex_id {
-                    pass.set_binding(self.texture_binds.get(&g.tex_id).expect("Cannot find texture in textures map"), &[]);
+                    pass.set_binding(
+                        self.texture_binds
+                            .get(&g.tex_id)
+                            .expect("Cannot find texture in textures map"),
+                        &[],
+                    );
                     prev_tex = g.tex_id;
                 }
                 pass.draw_parrot_indexed(g.range.clone(), 0..1);
@@ -162,7 +198,8 @@ impl QuadPipe {
         let bind_group = paint.binding_group(
             &self.core.pipeline.layout.b_layouts[0],
             &[&tex.texture, &*tex.sampler],
-            Some(&format!("{} binding group", tex.name)));
+            Some(&format!("{} binding group", tex.name)),
+        );
         self.texture_binds.insert(tex.id, bind_group);
     }
 }
@@ -182,7 +219,7 @@ impl Default for QuadVertex {
     fn default() -> Self {
         Self {
             pos: [0.0, 0.0, 0.0],
-            tex_coords: [0.0, 0.0]
+            tex_coords: [0.0, 0.0],
         }
     }
 }
@@ -198,7 +235,7 @@ impl QuadVertex {
     pub fn new(x: f32, y: f32, z: f32, u: f32, v: f32) -> Self {
         Self {
             pos: [x, y, z],
-            tex_coords: [u, v]
+            tex_coords: [u, v],
         }
     }
 
@@ -209,8 +246,5 @@ impl QuadVertex {
         }
     }
 
-    pub const VERTEX_LAYOUT: [VertexFormat; 2] = [
-        VertexFormat::Floatx3,
-        VertexFormat::Floatx2,
-    ];
+    pub const VERTEX_LAYOUT: [VertexFormat; 2] = [VertexFormat::Floatx3, VertexFormat::Floatx2];
 }

@@ -86,3 +86,9 @@ This update focus mainly about having better re-exports and updating uniform buf
 - Better re-exports i.e. you'll only need pigeon_parrot::Texture not pigeon_parrot::texture::Texture
 
 - Prepare now gives you the painter. This will allow you more freedom with how you manipulate you pipeline in the fn and prevent situations where you have to hand it in via the PrepareContext
+
+## Version 0.3.1
+
+### Changes
+
+- Update to wgpu 13.2 Note this means that you'll need to update your WGSL files to comform with the new standard.

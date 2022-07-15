@@ -60,7 +60,7 @@ impl Painter {
             force_fallback_adapter: false,
         }).await.ok_or(ParrotError::NoAdaptersFound)?;
 
-        let preferred_format = surface.get_preferred_format(&adapter).expect("Adapter incompatible with surface");
+        let preferred_format = surface.get_supported_formats(&adapter)[0];
 
         Ok(Self {
             device: Device::for_surface(surface, &adapter).await?,
@@ -437,14 +437,14 @@ impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
         if let Some(depth) = depth {
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachment {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target,
                     ops: wgpu::Operations {
                         load: op.into(),
                         store: true,
                     },
-                }],
+                })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                     view: depth,
                     depth_ops: Some(wgpu::Operations {
@@ -460,14 +460,14 @@ impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
         } else {
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
-                color_attachments: &[wgpu::RenderPassColorAttachment {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view,
                     resolve_target,
                     ops: wgpu::Operations {
                         load: op.into(),
                         store: true,
                     },
-                }],
+                })],
                 depth_stencil_attachment: None,
             })
         }
