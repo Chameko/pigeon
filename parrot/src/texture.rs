@@ -1,8 +1,10 @@
-use euclid::{Size2D, Rect, Box2D, Point2D};
+use euclid::{Size2D, Rect, Point2D};
 
 use crate::{
-    binding::Bind, device::Device, transform::ScreenSpace, color::{Color}
+    binding::Bind, device::Device, transform::ScreenSpace, color::Color
 };
+
+/// Parrots texture types. Note that textures coordinate system has the y-axis pointing down and the origin at the top right
 
 #[derive(Debug)]
 /// A texture
@@ -52,12 +54,12 @@ impl Texture {
             "Fatal: incorrect length for t_pixel buffer. Pixels length: {} || Required buffer length: {}", t_pixels.len(), texture.size.area()
         );
         
-        let rect = Rect::from_size(texture.size);
         let t_pixels = bytemuck::cast_slice(t_pixels);
         
         Self::copy(
             texture,
-            rect,
+            texture.size,
+            Point2D::new(0, 0),
             &device.queue,
             t_pixels,
             t_pixels.len() as u32 / texture.extent.height,
@@ -65,62 +67,31 @@ impl Texture {
         )
     }
     
-    /// Transfer texture pixels to a rect in a texture
+    /// Transfer texture pixels to a rect in a texture.
     pub fn transfer<T>(
         texture: &Texture,
         t_pixels: &[T],
-        rect: Rect<u32, ScreenSpace>,
+        dest_rect: Rect<u32, ScreenSpace>,
         device: &Device,
     ) where
     T: bytemuck::Pod + Clone + Copy + 'static,
     {
-        let destination = rect.to_box2d();
-        
-        // Make sure we have a positive rectangle
-        let destination: Box2D<u32, ScreenSpace> = Box2D::new (
-            Point2D::new(
-                destination.min.x.min(destination.max.x),
-                destination.min.y.min(destination.max.y)
-            ),
-            Point2D::new(
-                destination.max.x.max(destination.min.x),
-                destination.max.y.max(destination.max.y),
-            )
-        );
-        
-        // Flip y axis as wgpu has its texture y axis pointing down
-        let destination: Box2D<u32, ScreenSpace> = Box2D::new(
-            Point2D::new(destination.min.x, destination.max.y),
-            Point2D::new(destination.max.x, destination.min.y)
-        );
-        
-        let rect = destination.to_rect();
-        
-        // Width and height of transfer area
-        let destination_size = rect.size;
-        
-        // The destination coordinate of the transfer on the texture.
-        // We have to invert the y coordingate as explained above
-        let destination_point = Point2D::new(
-            rect.origin.x,
-            texture.size.height - rect.origin.y
-        );
-        
         assert!(
-            destination_size.area() <= texture.size.area(),
+            dest_rect.area() <= texture.size.area(),
             "Fatal: transfer size must be <= to the texture size"
         );
         
         let t_pixels: &[u8] = bytemuck::cast_slice(t_pixels);
         
         let extent = wgpu::Extent3d {
-            width: destination_size.width,
-            height: destination_size.height,
+            width: dest_rect.width(),
+            height: dest_rect.height(),
             depth_or_array_layers: 0,
         };
         Self::copy(
             &texture,
-            Rect::new(destination_point, destination_size),
+            dest_rect.size,
+            dest_rect.origin,
             &device.queue,
             t_pixels,
             t_pixels.len() as u32 / texture.extent.height * 4 as u32,
@@ -128,7 +99,7 @@ impl Texture {
         )
     }
     
-    /// ...
+    /// Transfer one section of a texture to another. 
     pub fn blit(
         &self,
         src: Rect<u32, ScreenSpace>,
@@ -168,10 +139,12 @@ impl Texture {
             }
         )
     }
-    
+
+    /// Note that the rect is only used for its origin and height which are in wgpu coordinates.
     fn copy (
         texture: &Texture,
-        desitination: euclid::Rect<u32, ScreenSpace>,
+        size: Size2D<u32, ScreenSpace>,
+        origin: Point2D<u32, ScreenSpace>,
         queue: &wgpu::Queue,
         t_pixels: &[u8],
         bytes_per_row: u32,
@@ -182,8 +155,8 @@ impl Texture {
                 texture: &texture.wgpu,
                 mip_level: 0,
                 origin: wgpu::Origin3d {
-                    x: desitination.origin.x,
-                    y: desitination.origin.y,
+                    x: origin.x,
+                    y: origin.y,
                     z: 0
                 },
                 aspect: wgpu::TextureAspect::All
@@ -192,7 +165,7 @@ impl Texture {
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: std::num::NonZeroU32::new(bytes_per_row),
-                rows_per_image: std::num::NonZeroU32::new(desitination.size.height),
+                rows_per_image: std::num::NonZeroU32::new(size.height),
             },
             extent, 
         )

@@ -92,3 +92,10 @@ This update focus mainly about having better re-exports and updating uniform buf
 ### Changes
 
 - Update to wgpu 13.2 Note this means that you'll need to update your WGSL files to comform with the new standard.
+
+## Version 0.4.1
+
+### Changes
+
+- Updated texture functions to be more consistant and use wgpu texture coordinate systems.
+- Add more stuff to re-exports.
