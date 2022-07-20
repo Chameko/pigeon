@@ -11,7 +11,7 @@ fn get_id() -> usize {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
-/// A texture containing its own [`Sampler`] and [`BindingGroup`]
+/// A texture containing its own [`Sampler`]
 #[derive(Debug)]
 pub struct Texture {
     pub id: usize,

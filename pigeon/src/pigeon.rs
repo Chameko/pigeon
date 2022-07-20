@@ -79,6 +79,7 @@ pub const OPENGL_TO_WGPU_MATRIX: Transform3D<f32, WorldSpace, WorldSpace> = Tran
 ///
 /// This creates a [Pigeon] and [Container] with the [`QuadPipe`] and [`TrianglePipe`] pipelines, with the field names quad and triangle.
 /// It also creates the fn draw_quad and draw_triangle to append graphics that breakdown for [`QuadPipe`] and [`TrianglePipe`]
+#[macro_export]
 macro_rules! pigeon {
     ($( $pipe:ty => $name:ident ),* | $($cust_pipe:ty : $func:ident => $cust_name:ident),* | $($spec_pipe:ty : $setup:ident : $prepare:ident => $spec_name:ident),* ) => {
         /// The manager for pigeon. Contains the important things like the pipelines and the [`Painter`]
@@ -157,6 +158,8 @@ macro_rules! pigeon {
             }
         }
 
+        /// Used to draw you shapes in pigeon. Takes in your draw function which will fill a [`Container`] with whatever you want
+        /// drawn this pass.
         pub fn draw<F>(pigeon: &mut Pigeon, draw_fn: F)
         where
         F: FnOnce(&mut Container),
@@ -272,6 +275,118 @@ macro_rules! pigeon {
                     )*
                 }
 
+                pigeon.paint.present(frame);
+            }
+
+            pigeon.frame_time = ft.elapsed().as_millis();
+            log::info!("Frame time >> {}ms", pigeon.frame_time);
+        }
+
+        /// Same as [draw] except it doesn't call the special pipelines. This is to avoid recurrsion and allow the specialised pipelines to
+        /// be able to draw themselves without creating an infinate loop.
+        pub fn draw_rec<F>(pigeon: &mut Pigeon, draw_fn: F)
+        where
+        F: FnOnce(&mut Container),
+        {
+            let mut cont = Container::new();
+
+            log::debug!("Calling user's draw function");
+
+            // Allow the user to populate the container
+            draw_fn(&mut cont);
+
+            let st = Instant::now();
+            log::debug!("Sorting container");
+            // sort container contents by texture.
+            $(
+                cont.$name = cont.$name.into_iter().sorted_by(|b1, b2| {
+                    if let Some(t1) = &b1.texture {
+                        if let Some(t2) = &b2.texture {
+                            // Some, Some
+                            if t1.id == t2.id {
+                                Ordering::Equal
+                            } else if t1.id > t2.id{
+                                Ordering::Greater
+                            } else {
+                                Ordering::Less
+                            }
+                        } else {
+                            // Some, None
+                            Ordering::Greater
+                        }
+                    } else if b2.texture.is_some() {
+                        // None, Some
+                        Ordering::Less
+                    } else {
+                        // None, None
+                        Ordering::Equal
+                    }
+                }).collect();
+            )*
+            $(
+                cont.$cust_name = cont.$cust_name.into_iter().sorted_by(|b1, b2| {
+                    if let Some(t1) = &b1.texture {
+                        if let Some(t2) = &b2.texture {
+                            // Some, Some
+                            if t1.id == t2.id {
+                                Ordering::Equal
+                            } else if t1.id > t2.id{
+                                Ordering::Greater
+                            } else {
+                                Ordering::Less
+                            }
+                        } else {
+                            // Some, None
+                            Ordering::Greater
+                        }
+                    } else if b2.texture.is_some() {
+                        // None, Some
+                        Ordering::Less
+                    } else {
+                        // None, None
+                        Ordering::Equal
+                    }
+                }).collect();
+            )*
+            log::info!("Sort time >> {}ms", st.elapsed().as_millis());
+            log::trace!("Sorted container >> {:?}", cont);
+
+            // Generate appropriate matrix info
+            let ortho: Transform3D<f32, WorldSpace, ScreenSpace> = Transform3D::ortho(-pigeon.screen.width/2.0, pigeon.screen.width/2.0, -pigeon.screen.height/2.0, pigeon.screen.height/2.0, 50.0, -50.0);
+            let ortho = OPENGL_TO_WGPU_MATRIX.then(&ortho);
+            log::debug!("Transform matrix >> {:?}", ortho);
+
+            let ft = Instant::now();
+
+            // Only render if there are any updates
+            if cont.is_updates() {
+                // Setup frame
+                let mut frame = pigeon.paint.frame();
+                let current_surface = pigeon.paint.current_frame().unwrap();
+                {
+                    let mut pass = frame.pass(PassOp::Clear(parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
+                    // call pipelines render function
+                    $(
+                        // Only render if we have something to render
+                        if cont.$name.len() > 0 {
+                            log::info!("Rendering for pipeline >> {}", stringify!($pipe));
+                            let prep: RenderInformation<<$pipe as Render>::Vertex> = (cont.$name, ortho);
+                            pigeon.paint.update_pipeline(&mut pigeon.$name, prep);
+                            #[allow(unused_variables)]
+                            let pass = pigeon.$name.render(&mut pigeon.paint, &mut pass);
+                        }
+                    )*
+                    $(
+                        // Only render if we have something to render
+                        if cont.$cust_name.len() > 0 {
+                            log::info!("Rendering for custom pipeline >> {}", stringify!($cust_pipe));
+                            let prep: RenderInformation<<$cust_pipe as Render>::Vertex> = (cont.$cust_name, ortho);
+                            pigeon.paint.update_pipeline(&mut pigeon.$cust_name, prep);
+                            #[allow(unused_variables)]
+                            let pass = pigeon.$cust_name.render(&mut pigeon.paint, &mut pass);
+                        }
+                    )*
+               }
                 pigeon.paint.present(frame);
             }
 

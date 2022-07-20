@@ -1,6 +1,10 @@
 # Pigeon
 
-A simple, flexable, cross-platform 2D rendering library... thing.
+![Latest Version](https://img.shields.io/crates/v/pigeon-2d?style=flat-square)
+![Docs](https://img.shields.io/docsrs/pigeon-2d)
+![License](https://img.shields.io/crates/l/pigeon-2d)
+
+A simple, flexable, cross-platform 2D rendering library.
 
 ## Why
 
@@ -29,8 +33,9 @@ Pigeon designed to come with very little build in, but instead with the ability 
 
 # Future plans
 
-For the next major update I'm looking into allowing pigeon to deploy to Web assembly.
+Looking into web assembly
 
 # Disclaimer
 
 I am very new to graphics programming and this is more or less an effort to increase my understanding. Use at your own risk.
+Also, the API is still unstable and succeptable to changes

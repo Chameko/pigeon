@@ -43,7 +43,7 @@ pub trait Plumber<'a>: Deref<Target = PipelineCore> {
     /// Used to create your pipeline. Supplies the wgpu pipeline and device.
     fn setup(pipe: Pipeline, painter: &Painter) -> Self;
 
-    /// Create the uniforms neccissary for an update with the supplied [`PrepareContext`].
+    /// Create the uniforms neccissary for an update with the supplied [`Plumber::PrepareContext`].
     fn prepare(&'a mut self, context: Self::PrepareContext, paint: &mut Painter) -> Vec<(&'a mut UniformBuffer, Vec<Self::Uniforms>)>;
 }
 

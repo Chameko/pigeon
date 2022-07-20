@@ -9,3 +9,8 @@ Initial release :D
 ## Version 0.2.0
 
 - Update to wgpu 13.2 Note this means that you'll need to update your WGSL files to comform with the new standard.
+
+## Version 0.2.1
+
+- Improved documentation
+- Added function to prevent special pipelines from recursivly calling themselves
