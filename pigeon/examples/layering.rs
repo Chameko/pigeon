@@ -2,7 +2,7 @@ extern crate winit;
 use euclid::Size2D;
 use pigeon_2d::graphics::primative::Rectangle;
 use pigeon_2d::graphics::Rgba;
-use pigeon_2d::pigeon::{draw, draw_triangle, Pigeon};
+use pigeon_2d::pigeon::{draw, add_triangle, Pigeon};
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 
@@ -70,7 +70,7 @@ fn main() {
             Event::RedrawRequested(_) => {
                 // Time to draw our shape :D
                 draw(&mut p, |cont| {
-                    draw_triangle(cont, vec![&rect, &rect2, &rect3])
+                    add_triangle(cont, vec![&rect, &rect2, &rect3])
                 })
             }
             _ => (),

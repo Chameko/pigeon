@@ -14,3 +14,8 @@ Initial release :D
 
 - Improved documentation
 - Added function to prevent special pipelines from recursivly calling themselves
+
+## Version 0.3.0
+
+- Added custom drawing functionality
+- Renamed draw_... to add_...

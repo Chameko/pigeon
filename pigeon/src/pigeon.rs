@@ -150,12 +150,72 @@ macro_rules! pigeon {
             }
 
             pub fn is_updates(&self) -> bool {
-                if $(self.$name.len() > 0 || )* $(self.$cust_name.len() > 0 ||)* false {
+                if $(self.$name.len() > 0 || )* $(self.$cust_name.len() > 0)* false {
                     true
                 } else {
                     false
                 }
             }
+        }
+
+        /// Sorts the container so shapes are grouped by texture to minimise texture swapping
+        fn sort_container(mut cont: Container) -> Container {
+            let st = Instant::now();
+            log::debug!("Sorting container");
+            // sort container contents by texture.
+            $(
+                cont.$name = cont.$name.into_iter().sorted_by(|b1, b2| {
+                    if let Some(t1) = &b1.texture {
+                        if let Some(t2) = &b2.texture {
+                            // Some, Some
+                            if t1.id == t2.id {
+                                Ordering::Equal
+                            } else if t1.id > t2.id{
+                                Ordering::Greater
+                            } else {
+                                Ordering::Less
+                            }
+                        } else {
+                            // Some, None
+                            Ordering::Greater
+                        }
+                    } else if b2.texture.is_some() {
+                        // None, Some
+                        Ordering::Less
+                    } else {
+                        // None, None
+                        Ordering::Equal
+                    }
+                }).collect();
+            )*
+            $(
+                cont.$cust_name = cont.$cust_name.into_iter().sorted_by(|b1, b2| {
+                    if let Some(t1) = &b1.texture {
+                        if let Some(t2) = &b2.texture {
+                            // Some, Some
+                            if t1.id == t2.id {
+                                Ordering::Equal
+                            } else if t1.id > t2.id{
+                                Ordering::Greater
+                            } else {
+                                Ordering::Less
+                            }
+                        } else {
+                            // Some, None
+                            Ordering::Greater
+                        }
+                    } else if b2.texture.is_some() {
+                        // None, Some
+                        Ordering::Less
+                    } else {
+                        // None, None
+                        Ordering::Equal
+                    }
+                }).collect();
+            )*
+            log::debug!("Sort time >> {}ms", st.elapsed().as_millis());
+            log::trace!("Sorted container >> {:?}", cont);
+            cont
         }
 
         /// Used to draw you shapes in pigeon. Takes in your draw function which will fill a [`Container`] with whatever you want
@@ -164,6 +224,7 @@ macro_rules! pigeon {
         where
         F: FnOnce(&mut Container),
         {
+            log::info!("Performing draw");
             let mut cont = Container::new();
 
             $(
@@ -176,61 +237,8 @@ macro_rules! pigeon {
             // Allow the user to populate the container
             draw_fn(&mut cont);
 
-            let st = Instant::now();
-            log::debug!("Sorting container");
-            // sort container contents by texture.
-            $(
-                cont.$name = cont.$name.into_iter().sorted_by(|b1, b2| {
-                    if let Some(t1) = &b1.texture {
-                        if let Some(t2) = &b2.texture {
-                            // Some, Some
-                            if t1.id == t2.id {
-                                Ordering::Equal
-                            } else if t1.id > t2.id{
-                                Ordering::Greater
-                            } else {
-                                Ordering::Less
-                            }
-                        } else {
-                            // Some, None
-                            Ordering::Greater
-                        }
-                    } else if b2.texture.is_some() {
-                        // None, Some
-                        Ordering::Less
-                    } else {
-                        // None, None
-                        Ordering::Equal
-                    }
-                }).collect();
-            )*
-            $(
-                cont.$cust_name = cont.$cust_name.into_iter().sorted_by(|b1, b2| {
-                    if let Some(t1) = &b1.texture {
-                        if let Some(t2) = &b2.texture {
-                            // Some, Some
-                            if t1.id == t2.id {
-                                Ordering::Equal
-                            } else if t1.id > t2.id{
-                                Ordering::Greater
-                            } else {
-                                Ordering::Less
-                            }
-                        } else {
-                            // Some, None
-                            Ordering::Greater
-                        }
-                    } else if b2.texture.is_some() {
-                        // None, Some
-                        Ordering::Less
-                    } else {
-                        // None, None
-                        Ordering::Equal
-                    }
-                }).collect();
-            )*
-            log::info!("Sort time >> {}ms", st.elapsed().as_millis());
-            log::trace!("Sorted container >> {:?}", cont);
+            // Sort container
+            cont = sort_container(cont);
 
             // Generate appropriate matrix info
             let ortho: Transform3D<f32, WorldSpace, ScreenSpace> = Transform3D::ortho(-pigeon.screen.width/2.0, pigeon.screen.width/2.0, -pigeon.screen.height/2.0, pigeon.screen.height/2.0, 50.0, -50.0);
@@ -253,8 +261,7 @@ macro_rules! pigeon {
                             log::info!("Rendering for pipeline >> {}", stringify!($pipe));
                             let prep: RenderInformation<<$pipe as Render>::Vertex> = (cont.$name, ortho);
                             pigeon.paint.update_pipeline(&mut pigeon.$name, prep);
-                            #[allow(unused_variables)]
-                            let pass = pigeon.$name.render(&mut pigeon.paint, &mut pass);
+                            pigeon.$name.render(&mut pigeon.paint, &mut pass);
                         }
                     )*
                     $(
@@ -263,130 +270,17 @@ macro_rules! pigeon {
                             log::info!("Rendering for custom pipeline >> {}", stringify!($cust_pipe));
                             let prep: RenderInformation<<$cust_pipe as Render>::Vertex> = (cont.$cust_name, ortho);
                             pigeon.paint.update_pipeline(&mut pigeon.$cust_name, prep);
-                            #[allow(unused_variables)]
-                            let pass = pigeon.$cust_name.render(&mut pigeon.paint, &mut pass);
+                            pigeon.$cust_name.render(&mut pigeon.paint, &mut pass);
                         }
                     )*
                     $(
                         // Always call a special pipeline's render function
                         log::info!("Rendering for special pipeline >> {}", stringify!($spec_pipe));
                         #[allow(unused_variables)]
-                        let pass = pigeon.$spec_name.render(&mut pigeon.paint, &mut pass);
+                        pigeon.$spec_name.render(&mut pigeon.paint, &mut pass);
                     )*
                 }
 
-                pigeon.paint.present(frame);
-            }
-
-            pigeon.frame_time = ft.elapsed().as_millis();
-            log::info!("Frame time >> {}ms", pigeon.frame_time);
-        }
-
-        /// Same as [draw] except it doesn't call the special pipelines. This is to avoid recurrsion and allow the specialised pipelines to
-        /// be able to draw themselves without creating an infinate loop.
-        pub fn draw_rec<F>(pigeon: &mut Pigeon, draw_fn: F)
-        where
-        F: FnOnce(&mut Container),
-        {
-            let mut cont = Container::new();
-
-            log::debug!("Calling user's draw function");
-
-            // Allow the user to populate the container
-            draw_fn(&mut cont);
-
-            let st = Instant::now();
-            log::debug!("Sorting container");
-            // sort container contents by texture.
-            $(
-                cont.$name = cont.$name.into_iter().sorted_by(|b1, b2| {
-                    if let Some(t1) = &b1.texture {
-                        if let Some(t2) = &b2.texture {
-                            // Some, Some
-                            if t1.id == t2.id {
-                                Ordering::Equal
-                            } else if t1.id > t2.id{
-                                Ordering::Greater
-                            } else {
-                                Ordering::Less
-                            }
-                        } else {
-                            // Some, None
-                            Ordering::Greater
-                        }
-                    } else if b2.texture.is_some() {
-                        // None, Some
-                        Ordering::Less
-                    } else {
-                        // None, None
-                        Ordering::Equal
-                    }
-                }).collect();
-            )*
-            $(
-                cont.$cust_name = cont.$cust_name.into_iter().sorted_by(|b1, b2| {
-                    if let Some(t1) = &b1.texture {
-                        if let Some(t2) = &b2.texture {
-                            // Some, Some
-                            if t1.id == t2.id {
-                                Ordering::Equal
-                            } else if t1.id > t2.id{
-                                Ordering::Greater
-                            } else {
-                                Ordering::Less
-                            }
-                        } else {
-                            // Some, None
-                            Ordering::Greater
-                        }
-                    } else if b2.texture.is_some() {
-                        // None, Some
-                        Ordering::Less
-                    } else {
-                        // None, None
-                        Ordering::Equal
-                    }
-                }).collect();
-            )*
-            log::info!("Sort time >> {}ms", st.elapsed().as_millis());
-            log::trace!("Sorted container >> {:?}", cont);
-
-            // Generate appropriate matrix info
-            let ortho: Transform3D<f32, WorldSpace, ScreenSpace> = Transform3D::ortho(-pigeon.screen.width/2.0, pigeon.screen.width/2.0, -pigeon.screen.height/2.0, pigeon.screen.height/2.0, 50.0, -50.0);
-            let ortho = OPENGL_TO_WGPU_MATRIX.then(&ortho);
-            log::debug!("Transform matrix >> {:?}", ortho);
-
-            let ft = Instant::now();
-
-            // Only render if there are any updates
-            if cont.is_updates() {
-                // Setup frame
-                let mut frame = pigeon.paint.frame();
-                let current_surface = pigeon.paint.current_frame().unwrap();
-                {
-                    let mut pass = frame.pass(PassOp::Clear(parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
-                    // call pipelines render function
-                    $(
-                        // Only render if we have something to render
-                        if cont.$name.len() > 0 {
-                            log::info!("Rendering for pipeline >> {}", stringify!($pipe));
-                            let prep: RenderInformation<<$pipe as Render>::Vertex> = (cont.$name, ortho);
-                            pigeon.paint.update_pipeline(&mut pigeon.$name, prep);
-                            #[allow(unused_variables)]
-                            let pass = pigeon.$name.render(&mut pigeon.paint, &mut pass);
-                        }
-                    )*
-                    $(
-                        // Only render if we have something to render
-                        if cont.$cust_name.len() > 0 {
-                            log::info!("Rendering for custom pipeline >> {}", stringify!($cust_pipe));
-                            let prep: RenderInformation<<$cust_pipe as Render>::Vertex> = (cont.$cust_name, ortho);
-                            pigeon.paint.update_pipeline(&mut pigeon.$cust_name, prep);
-                            #[allow(unused_variables)]
-                            let pass = pigeon.$cust_name.render(&mut pigeon.paint, &mut pass);
-                        }
-                    )*
-               }
                 pigeon.paint.present(frame);
             }
 
@@ -396,12 +290,87 @@ macro_rules! pigeon {
 
         paste::paste! {
             $(
-                pub fn [<draw_$name>](cont: &mut Container, graphics: Vec<&dyn Drawable<Pipeline = $pipe>>) {
+                pub fn [<add_$name>](cont: &mut Container, graphics: Vec<&dyn Drawable<Pipeline = $pipe>>) {
                     let mut graphics = graphics.iter().map(|g| g.breakdown()).collect();
                     cont.$name.append(&mut graphics)
                 }
             )+
         }
+
+        /// Specialised draw functions allowing you direct access to the [`wgpu::RenderPass`]
+        pub mod custom_render {
+            use super::*;
+
+            /// Simmilar to [`draw`] except it allows you to determine how the rendering stage will proceed, giving you access to the [`wgpu::RenderPass`].
+            pub fn draw_cust<F, T>(pigeon: &mut Pigeon, add_fn: F, render_fn: T)
+            where
+            F: FnOnce(&mut Container),
+            T: for <'a> FnOnce(
+                &'a mut Pigeon,
+                &mut Container,
+                &mut wgpu::RenderPass<'a>,
+                Transform3D<f32, WorldSpace, ScreenSpace>
+            )
+            {
+                log::info!("Performing custom draw");
+                let mut cont = Container::new();
+
+                log::debug!("Calling user's draw function");
+
+                // Allow the user to populate the container
+                add_fn(&mut cont);
+
+                // Sort the container
+                cont = sort_container(cont);
+
+                // Generate appropriate matrix info
+                let ortho: Transform3D<f32, WorldSpace, ScreenSpace> = Transform3D::ortho(-pigeon.screen.width/2.0, pigeon.screen.width/2.0, -pigeon.screen.height/2.0, pigeon.screen.height/2.0, 50.0, -50.0);
+                let ortho = OPENGL_TO_WGPU_MATRIX.then(&ortho);
+                log::debug!("Transform matrix >> {:?}", ortho);
+
+                let ft = Instant::now();
+
+                // Setup frame
+                let mut frame = pigeon.paint.frame();
+                let current_surface = pigeon.paint.current_frame().unwrap();
+                {
+                    let mut pass = frame.pass(PassOp::Clear(parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
+                    render_fn(pigeon, &mut cont, &mut pass, ortho)
+                }
+                pigeon.paint.present(frame);
+
+                pigeon.frame_time = ft.elapsed().as_millis();
+                log::info!("Frame time >> {}ms", pigeon.frame_time);
+            }
+
+            /// Renders all the custom and standard pipelines in the container (not specialised).
+            pub fn render_norm<'a>(
+                pigeon: &'a mut Pigeon,
+                cont: Container,
+                pass: &mut wgpu::RenderPass<'a>,
+                ortho: &Transform3D<f32, WorldSpace, ScreenSpace>
+            ) {
+                $(
+                    // Only render if we have something to render
+                    if cont.$name.len() > 0 {
+                        log::info!("Rendering for pipeline >> {}", stringify!($pipe));
+                        let prep: RenderInformation<<$pipe as Render>::Vertex> = (cont.$name, *ortho);
+                        pigeon.paint.update_pipeline(&mut pigeon.$name, prep);
+                        pigeon.$name.render(&mut pigeon.paint, pass);
+                    }
+                )*
+                $(
+                    // Only render if we have something to render
+                    if cont.$cust_name.len() > 0 {
+                        log::info!("Rendering for custom pipeline >> {}", stringify!($cust_pipe));
+                        let prep: RenderInformation<<$cust_pipe as Render>::Vertex> = (cont.$cust_name, ortho);
+                        pigeon.paint.update_pipeline(&mut pigeon.$cust_name, prep);
+                        pigeon.$cust_name.render(&mut pigeon.paint, pass);
+                    }
+                )*
+            }
+        }
+
     };
 }
 

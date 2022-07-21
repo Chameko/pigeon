@@ -3,7 +3,7 @@ extern crate pigeon_parrot as parrot;
 extern crate image;
 use winit::event_loop::ControlFlow;
 use winit::event::{WindowEvent, Event};
-use pigeon_2d::pigeon::{Pigeon, draw_quad, draw};
+use pigeon_2d::pigeon::{Pigeon, add_quad, draw};
 use pigeon_2d::graphics::{Sprite, Texture};
 use euclid::Size2D;
 use std::rc::Rc;
@@ -72,7 +72,7 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 // Time to draw our shape :D
-                draw(&mut p, |cont| draw_quad(cont, vec![&sprite]))
+                draw(&mut p, |cont| add_quad(cont, vec![&sprite]))
             }
             _ => ()
         }
