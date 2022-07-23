@@ -83,7 +83,7 @@ pub const OPENGL_TO_WGPU_MATRIX: Transform3D<f32, WorldSpace, WorldSpace> = Tran
 /// It also creates the fn draw_quad and draw_triangle to append graphics that breakdown for [`QuadPipe`] and [`TrianglePipe`]
 #[macro_export]
 macro_rules! pigeon {
-    ($( $pipe:ty => $name:ident ),* | $($cust_pipe:ty : $func:ident => $cust_name:ident),* | $($spec_pipe:ty : $setup:ident : $prepare:ident => $spec_name:ident),* ) => {
+    ($( $pipe:ty => $name:ident ),* | $($cust_pipe:ty >>  $func:ident => $cust_name:ident),* | $($spec_pipe:ty >> $setup:ident >> $prepare:ident => $spec_name:ident),* ) => {
         /// The manager for pigeon. Contains the important things like the pipelines and the [`Painter`]
         #[derive(Debug)]
         pub struct Pigeon {
