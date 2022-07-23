@@ -19,3 +19,7 @@ Initial release :D
 
 - Added custom drawing functionality
 - Renamed draw_... to add_...
+
+## Version 0.3.1
+- Fixed specialisation aspect of macro
+- Fixed documentation
