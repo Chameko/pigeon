@@ -1,7 +1,7 @@
 # Pigeon
 
-![Latest Version](https://img.shields.io/crates/v/pigeon-2d?style=flat-square)
-![Docs](https://img.shields.io/docsrs/pigeon-2d)
+![Latest Version](https://img.shields.io/crates/v/pigeon-2d?style=flat-square)(https://crates.io/crates/pigeon-2d)
+![Docs](https://img.shields.io/docsrs/pigeon-2d)(https://docs.rs/pigeon-2d/latest/pigeon_2d/)
 ![License](https://img.shields.io/crates/l/pigeon-2d)
 
 A simple, flexable, cross-platform 2D rendering library.
