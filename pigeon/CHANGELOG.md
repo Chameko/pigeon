@@ -23,3 +23,6 @@ Initial release :D
 ## Version 0.3.1
 - Fixed specialisation aspect of macro
 - Fixed documentation
+
+## Verision 0.4.0
+- New symboling to prevent clashing with module :: operator
