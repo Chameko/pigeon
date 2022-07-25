@@ -99,3 +99,9 @@ This update focus mainly about having better re-exports and updating uniform buf
 
 - Updated texture functions to be more consistant and use wgpu texture coordinate systems.
 - Add more stuff to re-exports.
+
+## Version 0.4.2
+
+### Changes
+
+- Added new 32-bit index buffers

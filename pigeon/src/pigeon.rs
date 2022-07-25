@@ -83,7 +83,9 @@ pub const OPENGL_TO_WGPU_MATRIX: Transform3D<f32, WorldSpace, WorldSpace> = Tran
 /// It also creates the fn draw_quad and draw_triangle to append graphics that breakdown for [`QuadPipe`] and [`TrianglePipe`]
 #[macro_export]
 macro_rules! pigeon {
-    ($( $pipe:ty => $name:ident ),* | $($cust_pipe:ty >>  $func:ident => $cust_name:ident),* | $($spec_pipe:ty >> $setup:ident >> $prepare:ident => $spec_name:ident),* ) => {
+    ($( $pipe:ty => $name:ident ),* | $($cust_pipe:ty >>  $func:ident => $cust_name:ident),* | $($spec_pipe:ty >> $setup:ident => $spec_name:ident),* ) => {
+
+        
         /// The manager for pigeon. Contains the important things like the pipelines and the [`Painter`]
         #[derive(Debug)]
         pub struct Pigeon {
@@ -104,7 +106,7 @@ macro_rules! pigeon {
                 $(let $name = paint.pipeline::<$pipe>(Blending::default(), paint.preferred_format(), Some(&format!("{} shader", stringify!($name))));
                 )*
                 $(
-                    let $cust_name = paint.custom_pipeline::<$cust_pipe, parrot::painter::PipelineFunction>(
+                    let $cust_name = paint.custom_pipeline::<$cust_pipe, pigeon_parrot::painter::PipelineFunction>(
                         Some(&format!("{} shader",
                         stringify!($cust_name))),
                         $func
@@ -229,11 +231,6 @@ macro_rules! pigeon {
             log::info!("Performing draw");
             let mut cont = Container::new();
 
-            $(
-                log::debug!("Running special pipeline prepare fn >> {}", stringify!($spec_name));
-                $prepare();
-            )*
-
             log::debug!("Calling user's draw function");
 
             // Allow the user to populate the container
@@ -255,7 +252,7 @@ macro_rules! pigeon {
                 let mut frame = pigeon.paint.frame();
                 let current_surface = pigeon.paint.current_frame().unwrap();
                 {
-                    let mut pass = frame.pass(PassOp::Clear(parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
+                    let mut pass = frame.pass(pigeon_parrot::painter::PassOp::Clear(pigeon_parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
                     // call pipelines render function
                     $(
                         // Only render if we have something to render
@@ -296,7 +293,13 @@ macro_rules! pigeon {
                     let mut graphics = graphics.iter().map(|g| g.breakdown()).collect();
                     cont.$name.append(&mut graphics)
                 }
-            )+
+            )*
+            $(
+                pub fn [<add_$cust_name>](cont: &mut Container, graphics: Vec<&dyn Drawable<Pipeline = $cust_pipe>>) {
+                    let mut graphics = graphics.iter().map(|g| g.breakdown()).collect();
+                    cont.$cust_name.append(&mut graphics)
+                }
+            )*
         }
 
         /// Specialised draw functions allowing you direct access to the [`wgpu::RenderPass`]
@@ -304,12 +307,12 @@ macro_rules! pigeon {
             use super::*;
 
             /// Simmilar to [`draw`] except it allows you to determine how the rendering stage will proceed, giving you access to the [`wgpu::RenderPass`].
-            pub fn draw_cust<F, T>(pigeon: &mut Pigeon, add_fn: F, render_fn: T)
+            pub fn draw_cust<F, T>(pigeon: &mut Pigeon, depth: bool, add_fn: F, render_fn: T)
             where
             F: FnOnce(&mut Container),
             T: for <'a> FnOnce(
                 &'a mut Pigeon,
-                &mut Container,
+                Container,
                 &mut wgpu::RenderPass<'a>,
                 Transform3D<f32, WorldSpace, ScreenSpace>
             )
@@ -334,10 +337,15 @@ macro_rules! pigeon {
 
                 // Setup frame
                 let mut frame = pigeon.paint.frame();
-                let current_surface = pigeon.paint.current_frame().unwrap();
+                let current_surface = if !depth {
+                    pigeon.paint.current_frame_no_depth().unwrap()
+                } else {
+                    pigeon.paint.current_frame().unwrap()
+                };
+
                 {
-                    let mut pass = frame.pass(PassOp::Clear(parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
-                    render_fn(pigeon, &mut cont, &mut pass, ortho)
+                    let mut pass = frame.pass(PassOp::Clear(pigeon_parrot::color::Rgba::new(0.1, 0.2, 0.3, 1.0)), &current_surface, None);
+                    render_fn(pigeon, cont, &mut pass, ortho)
                 }
                 pigeon.paint.present(frame);
 

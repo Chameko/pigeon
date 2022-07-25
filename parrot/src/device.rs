@@ -9,7 +9,7 @@ use crate::{
     },
     buffers::{
         vertex::VertexBuffer,
-        index::IndexBuffer,
+        index::{IndexBuffer, IndexBuffer32},
         uniform::UniformBuffer, DepthBuffer, FrameBuffer
     },
     texture::Texture,
@@ -131,6 +131,18 @@ impl Device {
         }
     }
 
+    /// Create 32 bit index buffer
+    pub fn create_index_buffer_32(&self, indicies: &[u32], name: Option<&str>) -> IndexBuffer32 {
+        log::info!("Created index buffer 32 >> Name: {:?}", name);
+        let index_buf = self.create_buffer_from_slice(indicies, wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST, name);
+        IndexBuffer32 {
+            wgpu: index_buf,
+            size: indicies.len() as u32,
+            name: name.map(|s| s.to_string())
+        }
+    }
+
+    /// Crate 16 bit index buffer
     pub fn create_index_buffer(&self, indicies: &[u16], name: Option<&str>) -> IndexBuffer {
         log::info!("Created index buffer >> Name: {:?}", name);
         let index_buf = self.create_buffer_from_slice(indicies, wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST, name);
@@ -368,7 +380,21 @@ impl Device {
         self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(vertices));
     }
 
-    /// Update a index buffer
+    /// Update a 32 bit index buffer
+    pub fn update_index_buffer_32(&self, mut indicies: Vec<u32>, buf: &mut IndexBuffer32) {
+        // Get the alignment
+        let alignment = wgpu::COPY_BUFFER_ALIGNMENT as usize / std::mem::size_of::<u32>();
+        let fraction = indicies.len() % alignment;
+        // Extend the index buffer so its aligned
+        if fraction > 0 {
+            indicies.extend(std::iter::repeat(0).take(alignment - fraction));
+        }
+
+        // Update the buffer
+        self.queue.write_buffer(&buf.wgpu, 0, bytemuck::cast_slice(indicies.as_slice()));
+    }
+
+    /// Update a 16 bit index buffer
     pub fn update_index_buffer(&self, mut indicies: Vec<u16>, buf: &mut IndexBuffer) {
         // Get the alignment
         let alignment = wgpu::COPY_BUFFER_ALIGNMENT as usize / std::mem::size_of::<u16>();

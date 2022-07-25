@@ -17,7 +17,7 @@ use crate::{
         vertex::VertexBuffer,
         uniform::UniformBuffer,
         index::IndexBuffer, DepthBuffer, FrameBuffer,
-    }, 
+    }, index::IndexBuffer32, 
 };
 
 /// The main interface for parrot. *Handles the rendering shenanigans so YOU don't have to*
@@ -155,9 +155,14 @@ impl Painter {
         self.device.create_vertex_buffer(verts, name)
     }
 
-    /// Create a index buffer
+    /// Create a 16 bit index buffer
     pub fn index_buffer(&self, indicies: &[u16], name: Option<&str>) -> IndexBuffer {
         self.device.create_index_buffer(indicies, name)
+    }
+
+    /// Create a 32 bit index buffer
+    pub fn index_buffer_32(&self, indicies: &[u32], name: Option<&str>) -> IndexBuffer32 {
+        self.device.create_index_buffer_32(indicies, name)
     }
 
     /// Create a uniform buffer
@@ -303,6 +308,23 @@ impl Painter {
         }
     }
     
+    /// Updates an index buffer 32 or, if too big, creates a new one big enough to fit the new data
+    pub fn update_index_buffer_32(&mut self, indicies:Vec<u32>, buffer: &mut IndexBuffer32) -> Option<IndexBuffer32> {
+        // Check if the index buffer is big enough to fit the indicies
+        if indicies.len() <= buffer.size as usize {
+            log::info!("Updating index buffer 32 >> Current size: {} || Updated size: {}", buffer.size, indicies.len());
+            self.device.update_index_buffer_32(indicies, buffer);
+            None
+        } else {
+            log::info!("Creating new index buffer >> Current size: {} || Updated size: {}", buffer.size, indicies.len());
+            if let Some(name) = buffer.name.clone() {
+                Some(self.index_buffer_32(indicies.as_slice(), Some(name.as_str())))
+            } else {
+                Some(self.index_buffer_32(indicies.as_slice(), None))
+            }
+        }
+    }
+
     /// Updates an index buffer or, if too big, creates a new one big enough to fit the new data
     pub fn update_index_buffer(&mut self, indicies: Vec<u16>, buffer: &mut IndexBuffer) -> Option<IndexBuffer> {
         // Check if the index buffer is big enough to fit the indicies
@@ -427,6 +449,7 @@ pub trait RenderPassExtention<'a> {
 
     fn set_parrot_index_buffer(&mut self, index_buf: &'a IndexBuffer);
     fn set_parrot_vertex_buffer(&mut self, vertex_buf: &'a VertexBuffer);
+    fn set_parrot_index_buffer_32(&mut self, index_buf: &'a IndexBuffer32);
     fn draw_buffer_range(&mut self, buf: &'a VertexBuffer, range: Range<u32>);
     fn draw_parrot_indexed(&mut self, indicies: Range<u32>, instances: Range<u32>);
 }
@@ -489,6 +512,11 @@ impl<'a> RenderPassExtention<'a> for wgpu::RenderPass<'a> {
     fn set_parrot_index_buffer(&mut self, index_buf: &'a IndexBuffer) {
         log::info!("Set index buffer >> Name: {:?}", index_buf.name);
         self.set_index_buffer(index_buf.slice(), wgpu::IndexFormat::Uint16)
+    }
+
+    fn set_parrot_index_buffer_32(&mut self, index_buf: &'a IndexBuffer32) {
+        log::info!("Set index buffer 32 >> Name: {:?}", index_buf.name);
+        self.set_index_buffer(index_buf.slice(), wgpu::IndexFormat::Uint32)
     }
 
     fn set_parrot_vertex_buffer(&mut self, vertex_buf: &'a VertexBuffer) {

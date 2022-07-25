@@ -26,3 +26,7 @@ Initial release :D
 
 ## Verision 0.4.0
 - New symboling to prevent clashing with module :: operator
+
+## Version 0.5.0
+- Removed redundant prepare function from specialised pipelines
+- Added depth option to custom draw fn
